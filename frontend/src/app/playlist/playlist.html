@@ -1,0 +1,11 @@
+<h1>Playlist</h1>
+
+<ul>
+    @for (track of tracks; track track.name) {
+        <li>
+            <strong>{{ track.name }}</strong>
+            - {{ track.artist }}
+            ({{ track.album }}, {{ track.year }})
+        </li>
+    }
+</ul>
