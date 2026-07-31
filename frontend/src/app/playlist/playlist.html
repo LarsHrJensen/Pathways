@@ -1,11 +1,18 @@
 <h1>Playlist</h1>
 
 <ul>
-    @for (track of tracks; track track.name) {
-        <li>
-            <strong>{{ track.name }}</strong>
-            - {{ track.artist }}
-            ({{ track.album }}, {{ track.year }})
-        </li>
-    }
+  @for (track of tracks; track track.uri) {
+    <li>
+      <p><strong>Name:</strong> {{ track.name }}</p>
+      <p><strong>Artist(s):</strong> {{ track.artists }}</p>
+      <p><strong>Album:</strong> {{ track.album }}</p>
+      <p><strong>Genres:</strong> {{ track.genres }}</p>
+      <p><strong>Danceability:</strong> {{ track.danceability }}</p>
+      <p><strong>Energy:</strong> {{ track.energy }}</p>
+      <p><strong>Valence:</strong> {{ track.valence }}</p>
+      <p><strong>Tempo:</strong> {{ track.tempo }}</p>
+
+      <hr>
+    </li>
+  }
 </ul>

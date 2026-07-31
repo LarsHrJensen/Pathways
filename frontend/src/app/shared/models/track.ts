@@ -1,6 +1,11 @@
 export interface Track {
+  uri: string;
   name: string;
-  artist: string;
   album: string;
-  year: number;
+  artists: string;
+  genres: string;
+  danceability: number;
+  energy: number;
+  valence: number;
+  tempo: number;
 }

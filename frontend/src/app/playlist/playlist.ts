@@ -1,28 +1,20 @@
 import { Component } from '@angular/core';
+import { PlaylistService } from '../shared/services/playlist.service';
 import { Track } from '../shared/models/track';
 
 @Component({
   selector: 'app-playlist',
+  standalone: true,
   imports: [],
   templateUrl: './playlist.html',
   styleUrl: './playlist.css',
 })
+
 export class Playlist {
 
-  tracks: Track[] = [
-    {
-      name: "Everything in Its Right Place",
-      artist: "Radiohead",
-      album: "Kid A",
-      year: 2000
-    },
+    tracks: Track[] = [];
 
-    {
-      name: "Teardrop",
-      artist: "Massive Attack",
-      album: "Mezzanine",
-      year: 1998
-    }
-  ];
-  
+    constructor(private playlistService: PlaylistService) {
+    this.tracks = this.playlistService.getTracks();
+  }
 }
