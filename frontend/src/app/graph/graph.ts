@@ -1,6 +1,6 @@
 import { Component, AfterViewInit, ViewChild, ElementRef } from '@angular/core';
-import Graph from 'graphology';
 import Sigma from 'sigma';
+import { GraphService } from '../shared/services/graph.service';
 
 @Component({
   selector: 'app-graph',
@@ -13,28 +13,13 @@ export class GraphComponent implements AfterViewInit {
   @ViewChild('container')
   container!: ElementRef;
 
+  constructor(private graphService: GraphService) {}
+
   ngAfterViewInit(): void {
 
-    const graph = new Graph();
+    const graph = this.graphService.createGraph();
 
-    graph.addNode('A', {
-      label: 'Track A',
-      x: 0,
-      y: 0,
-      size: 10
-    
-  });
-
-  graph.addNode('B', {
-      label: 'Track B',
-      x: 1,
-      y: 1,
-      size: 10
-    });
-
-    graph.addEdge('A', 'B');
-
-    const sigma = new Sigma(graph, this.container.nativeElement);
+    new Sigma(graph, this.container.nativeElement);
   }
 
 }
