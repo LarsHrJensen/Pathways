@@ -17,8 +17,10 @@
     "@angular/forms": "^22.0.0",
     "@angular/platform-browser": "^22.0.0",
     "@angular/router": "^22.0.0",
+    "graphology": "^0.26.0",
     "papaparse": "^5.5.4",
     "rxjs": "~7.8.0",
+    "sigma": "^3.0.3",
     "tslib": "^2.3.0"
   },
   "devDependencies": {
