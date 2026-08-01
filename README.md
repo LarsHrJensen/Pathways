@@ -6,7 +6,7 @@ Unlike traditional recommendation systems that primarily predict what users will
 
 For a detailed description of the vision and concept, see:
 
-[Pathways Project Description](docs/Pathways-Project-Description.pdf)
+[Pathways Project Description](docs/Project-Description.pdf)
 
 ## Current Features
 
