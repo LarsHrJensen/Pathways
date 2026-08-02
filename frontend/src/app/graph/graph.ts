@@ -1,6 +1,7 @@
 import { Component, AfterViewInit, ViewChild, ElementRef } from '@angular/core';
 import Sigma from 'sigma';
 import { GraphService } from '../shared/services/graph.service';
+import { PlaylistService } from '../shared/services/playlist.service';
 
 @Component({
   selector: 'app-graph',
@@ -13,13 +14,24 @@ export class GraphComponent implements AfterViewInit {
   @ViewChild('container')
   container!: ElementRef;
 
-  constructor(private graphService: GraphService) {}
+  private sigma?: Sigma;
+
+  constructor(private graphService: GraphService,
+              private playlistService: PlaylistService
+  ) {}
 
   ngAfterViewInit(): void {
+    this.playlistService.tracks$.subscribe(tracks => {
+      if (tracks.length === 0) {
+        return;
+      }
 
-    const graph = this.graphService.createGraph();
+      this.sigma?.kill();
 
-    new Sigma(graph, this.container.nativeElement);
+      const graph = this.graphService.createGraph(tracks);
+
+      this.sigma = new Sigma(graph, this.container.nativeElement);
+    });
   }
 
 }
