@@ -27,7 +27,8 @@ export class UploadService {
         danceability: Number(row["Danceability"]),
         energy: Number(row["Energy"]),
         valence: Number(row["Valence"]),
-        tempo: Number(row["Tempo"])
+        tempo: Number(row["Tempo"]),
+        year: Number(row['Release Date']?.slice(0, 4)),
     }));
 
       console.log(tracks);

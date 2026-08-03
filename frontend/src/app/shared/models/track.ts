@@ -8,4 +8,5 @@ export interface Track {
   energy: number;
   valence: number;
   tempo: number;
+  year: number;
 }
