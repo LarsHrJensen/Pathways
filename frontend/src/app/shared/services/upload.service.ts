@@ -23,7 +23,7 @@ export class UploadService {
         name: row["Track Name"],
         album: row["Album Name"],
         artists: row["Artist Name(s)"],
-        genres: row["Genres"],
+        genres: row["Genres"].split(','),
         danceability: Number(row["Danceability"]),
         energy: Number(row["Energy"]),
         valence: Number(row["Valence"]),

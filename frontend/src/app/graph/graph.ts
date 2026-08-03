@@ -3,7 +3,6 @@ import Sigma from 'sigma';
 import { GraphService } from '../shared/services/graph.service';
 import { PlaylistService } from '../shared/services/playlist.service';
 import { Track } from '../shared/models/track';
-import { NgZone } from '@angular/core';
 import { ChangeDetectorRef } from '@angular/core';
 
 @Component({
@@ -22,7 +21,6 @@ export class GraphComponent implements AfterViewInit {
 
   constructor(private graphService: GraphService,
               private playlistService: PlaylistService,
-              private ngZone: NgZone,
               private cdr: ChangeDetectorRef
   ) {}
 
@@ -46,17 +44,44 @@ export class GraphComponent implements AfterViewInit {
               this.container.nativeElement
           );
 
+          const camera = this.sigma.getCamera();
+
+          camera.on('updated', cameraState => {
+              graph.forEachNode((node, attributes) => {
+                const track = tracks.find(track => track.uri === node);
+
+                if (!track) {
+                    return;
+                }
+
+                let label = track.artists;
+
+                if (cameraState.ratio < 0.2) {
+                label = `${track.artists} - ${track.name}`;
+                }
+
+                if (cameraState.ratio < 0.05) {
+                label = `${track.artists} - ${track.name} - ${track.album}`;
+                }
+
+                graph.setNodeAttribute(node, 'label', label);
+
+              });
+
+              this.sigma!.scheduleRefresh();
+          });
+
           this.sigma.on('clickNode', ({ node }) => {
               const selectedTrack = tracks.find(
                   track => track.uri === node
               );
 
-              console.log('Selected track:', selectedTrack);
+              console.log(selectedTrack?.genres);
               
-              this.ngZone.run(() => {
+              
                 this.selectedTrack = selectedTrack;
                 this.cdr.detectChanges();
-              });
+              
           });
       });
   }

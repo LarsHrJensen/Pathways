@@ -3,7 +3,7 @@ export interface Track {
   name: string;
   album: string;
   artists: string;
-  genres: string;
+  genres: string[];
   danceability: number;
   energy: number;
   valence: number;

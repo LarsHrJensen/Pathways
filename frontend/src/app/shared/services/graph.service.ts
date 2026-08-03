@@ -12,11 +12,20 @@ export class GraphService {
         const graph = new Graph();
      
         tracks.forEach((track) => {
+
+            const red = Math.round(track.valence * 255);
+            const blue = Math.round((1 - track.valence) * 255);
+
+            const brightness = 0.7 + track.energy * 0.3; // Adjust brightness based on energy
+
+            const color = `rgb(${Math.round(red * brightness)}, 0, ${Math.round(blue * brightness)})`;
+
             graph.addNode(track.uri, {
-                label: `${track.name} - ${track.artists} | V: ${track.valence.toFixed(2)} | E: ${track.energy.toFixed(2)}`,
+                label: `${track.name}`,
                 x: track.valence,
                 y: track.energy,
                 size: 5,
+                color: color
             });
         });
         
