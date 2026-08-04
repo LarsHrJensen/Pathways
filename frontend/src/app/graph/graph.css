@@ -1,0 +1,55 @@
+:host {
+    display: block;
+    width: 100%;
+}
+
+.graph-layout {
+    position: relative;
+    display: flex;
+    width: 100%;
+    min-height: 700px;
+}
+
+.graph-container {
+    flex: 1;
+    min-width: 0;
+    height: 700px;
+}
+
+.track-info {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    z-index: 10;
+    width: min(300px, calc(100% - 2rem));
+    padding: 1rem;
+    color: #1f2937;
+    background: #ffffff;
+    border: 1px solid #d1d5db;
+    border-radius: 0.5rem;
+    box-shadow: 0 4px 16px rgb(0 0 0 / 18%);
+}
+
+.close-info {
+    float: right;
+    padding: 0;
+    color: #6b7280;
+    font-size: 1.5rem;
+    line-height: 1;
+    background: transparent;
+    border: 0;
+    cursor: pointer;
+}
+
+.track-info h3 {
+    margin: 0 0 0.75rem 0;
+}
+
+.track-info p {
+    margin: 0;
+}
+
+.track-info strong {
+    display: inline-block;
+    width: 70px;
+}

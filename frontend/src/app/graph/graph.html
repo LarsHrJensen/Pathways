@@ -1,0 +1,14 @@
+<div class="graph-layout">
+  <div #container class="graph-container"></div>
+
+  @if (selectedTrack) {
+    <div class="track-info">
+      <button type="button" class="close-info" (click)="selectedTrack = undefined" aria-label="Luk information">×</button>
+      <h3>{{ selectedTrack.name }}</h3>
+      <p><strong>Artist:</strong> {{ selectedTrack.artists }}</p>
+      <p><strong>Album:</strong> {{ selectedTrack.album }}</p>
+      <p><strong>Year:</strong> {{ selectedTrack.year }}</p>
+      <p><strong>Genres:</strong> {{ selectedTrack.genres.join(', ') }}</p>
+    </div>
+  }
+</div>

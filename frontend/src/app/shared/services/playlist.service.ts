@@ -1,18 +1,21 @@
 import { Injectable } from '@angular/core';
 import { Track } from '../models/track';
+import { BehaviorSubject } from 'rxjs';
 
 @Injectable({
   providedIn: 'root'
 })
 export class PlaylistService {
 
-  private tracks: Track[] = [];
+  private trackSubject = new BehaviorSubject<Track[]>([]);
+  
+  tracks$ = this.trackSubject.asObservable();
 
   setTracks(tracks: Track[]): void {
-    this.tracks = tracks;
+    this.trackSubject.next(tracks);
   }
 
   getTracks(): Track[] {
-    return this.tracks;
+    return this.trackSubject.value;
   }
 }
