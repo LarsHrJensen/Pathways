@@ -15,11 +15,20 @@ public class MusicController : ControllerBase
         _musicBrainzService = musicBrainzService;
     }
 
-        [HttpGet("{artist}")]
+    [HttpGet("{artist}")]
     public async Task<IActionResult> Get(string artist)
     {
         var result = await _musicBrainzService.SearchArtistAsync(artist);
 
         return Ok(result);
     }
+
+    [HttpGet("relations/{mbid}")]
+    public async Task<IActionResult> GetRelations(string mbid)
+    {
+        var result = await _musicBrainzService.GetArtistRelationsAsync(mbid);
+
+        return Ok(result);
+    }
+
 }

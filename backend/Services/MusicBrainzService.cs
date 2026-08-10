@@ -1,6 +1,7 @@
 using System.Net.Http;
 using System.Threading.Tasks;
 using System.Text.Json;
+using backend.Models;
 
 namespace backend.Services;
 
@@ -16,8 +17,9 @@ public class MusicBrainzService
         "Pathways/0.1 (https://github.com/LarsHrJensen/Pathways)");
     }
 
-    public async Task<string> SearchArtistAsync(string artist)
+    public async Task<Artist> SearchArtistAsync(string artist)
     {
+        
         var url = $"https://musicbrainz.org/ws/2/artist/?query={artist}&fmt=json";
 
         var json = await _httpClient.GetStringAsync(url);
@@ -25,10 +27,49 @@ public class MusicBrainzService
         using var document = JsonDocument.Parse(json);
 
         var artists = document.RootElement.GetProperty("artists");
-
         var firstArtist = artists[0];
 
-        return firstArtist.GetProperty("name").GetString()!;
+        var id = firstArtist.GetProperty("id").GetString();
+        var name = firstArtist.GetProperty("name").GetString();
+        
+        return new Artist
+        {
+            Id = id!,
+            Name = name! 
+        };
+
+    }
+
+    public async Task<List<ArtistRelation>> GetArtistRelationsAsync(string mbid)
+    {
+        var url = $"https://musicbrainz.org/ws/2/artist/{mbid}?inc=artist-rels&fmt=json";
+
+        var json = await _httpClient.GetStringAsync(url);
+
+        var result = new List<ArtistRelation>();
+
+        using var document = JsonDocument.Parse(json);
+
+        var relations = document.RootElement.GetProperty("relations");
+
+        foreach (var relation in relations.EnumerateArray())
+        {
+            var artistId = relation.GetProperty("artist").GetProperty("id").GetString();
+            var artistName = relation.GetProperty("artist").GetProperty("name").GetString();
+            var relationType = relation.GetProperty("type").GetString();
+
+            result.Add(new ArtistRelation
+            {
+                ArtistId = artistId!,
+                ArtistName = artistName!,
+                RelationType = relationType!
+            });
+        }
+
+        return result
+            .GroupBy(r => new { r.ArtistId, r.RelationType})
+            .Select(g => g.First())
+            .ToList();
     }
 
 }
