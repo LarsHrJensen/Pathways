@@ -4,6 +4,7 @@ import { GraphService } from '../shared/services/graph.service';
 import { PlaylistService } from '../shared/services/playlist.service';
 import { Track } from '../shared/models/track';
 import { ChangeDetectorRef } from '@angular/core';
+import Graph from 'graphology';
 
 @Component({
   selector: 'app-graph',
@@ -24,65 +25,77 @@ export class GraphComponent implements AfterViewInit {
               private cdr: ChangeDetectorRef
   ) {}
 
-    ngAfterViewInit(): void {
-      this.playlistService.tracks$.subscribe(tracks => {
-          if (tracks.length === 0) {
-              return;
-          }
+   ngAfterViewInit(): void {
+    this.playlistService.tracks$.subscribe(tracks => {
+            if (tracks.length === 0) {
+            return;
+            }
 
-          this.sigma?.kill();
+            this.sigma?.kill();
 
-          const graph = this.graphService.createGraph(tracks);
+            const graph = this.graphService.createGraph(tracks);
 
-          console.log(
-    'Container width:',
-    this.container.nativeElement.offsetWidth
-);
+            this.sigma = new Sigma(
+            graph,
+            this.container.nativeElement
+            );
 
-          this.sigma = new Sigma(
-              graph,
-              this.container.nativeElement
-          );
+            this.setupZoomLabels(graph, tracks);
+            this.setupNodeClick(tracks);
+        });
+    }
 
-          const camera = this.sigma.getCamera();
+    // Sets up zoom labels based on the camera's zoom ratio
 
-          camera.on('updated', cameraState => {
-              graph.forEachNode((node, attributes) => {
-                const track = tracks.find(track => track.uri === node);
+    private setupZoomLabels(graph: Graph, tracks: Track[]): void {
+    const camera = this.sigma!.getCamera();
 
-                if (!track) {
-                    return;
-                }
+    camera.on('updated', cameraState => {
+            graph.forEachNode(node => {
+            const track = tracks.find(track => track.uri === node);
 
-                let label = track.artists;
+            if (!track) {
+                return;
+            }
 
-                if (cameraState.ratio < 0.2) {
-                label = `${track.artists} - ${track.name}`;
-                }
+            const label = this.getTrackLabel(
+                track,
+                cameraState.ratio
+            );
 
-                if (cameraState.ratio < 0.05) {
-                label = `${track.artists} - ${track.name} - ${track.album}`;
-                }
+            graph.setNodeAttribute(node, 'label', label);
+            });
 
-                graph.setNodeAttribute(node, 'label', label);
+            this.sigma!.scheduleRefresh();
+        });
+    }
 
-              });
+    // Handles node click events and update the selected track
 
-              this.sigma!.scheduleRefresh();
-          });
+    private setupNodeClick(tracks: Track[]): void {
+    this.sigma!.on('clickNode', ({ node }) => {
+            const selectedTrack = tracks.find(
+            track => track.uri === node
+            );
 
-          this.sigma.on('clickNode', ({ node }) => {
-              const selectedTrack = tracks.find(
-                  track => track.uri === node
-              );
+            this.selectedTrack = selectedTrack;
+            this.cdr.detectChanges();
+        });
+    }
 
-              console.log(selectedTrack?.genres);
-              
-              
-                this.selectedTrack = selectedTrack;
-                this.cdr.detectChanges();
-              
-          });
-      });
-  }
+    // Determines the label of a track based on the zoom ratio
+
+    private getTrackLabel(track: Track, zoomRatio: number): string {
+        let label = track.artists;
+
+        if (zoomRatio < 0.2) {
+        label = `${track.artists} - ${track.name}`;
+        }
+
+        if (zoomRatio < 0.05) {
+        label = `${track.artists} - ${track.name} - ${track.album}`;
+        }
+
+        return label;
+    }
 }

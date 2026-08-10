@@ -7,6 +7,8 @@ import { Track } from '../models/track';
 })
 export class GraphService {
 
+    // Creates a graph using valence and energy as node coordinates
+
     createGraph(tracks: Track[]): Graph {
 
         const graph = new Graph();
@@ -45,40 +47,7 @@ export class GraphService {
         return graph;
     }
 
-            //closest track by valence
-        /*  
-        private findClosestTrackByValence(
-                currentTrack: Track,
-                tracks: Track[]
-            ): { track: Track; difference: number } | undefined {
-
-            let closestTrack: Track | undefined;
-            let smallestDifference = Infinity;
-
-            tracks.forEach(track => {
-                if (track.uri === currentTrack.uri) {
-                    return;
-                }
-
-                const difference = Math.abs(
-                    currentTrack.valence - track.valence
-                );
-
-                if (difference < smallestDifference) {
-                    smallestDifference = difference;
-                    closestTrack = track;
-                }
-            });
-
-            if (closestTrack) {
-                return {
-                    track: closestTrack,
-                    difference: smallestDifference,
-                };
-            }
-                return undefined;
-        }
-                */
+        // Finds the closest track using Euclidean distance in valence/energy space
 
         private findClosestTrackByEnergyAndValence(
             currentTrack: Track,
