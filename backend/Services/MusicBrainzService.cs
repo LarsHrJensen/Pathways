@@ -72,4 +72,37 @@ public class MusicBrainzService
             .ToList();
     }
 
+    public async Task<List<Relation>> GetReleaseRelationsAsync(string mbid)
+    {
+        var url = $"https://musicbrainz.org/ws/2/release/{mbid}?inc=artist-rels&fmt=json";
+
+        var json = await _httpClient.GetStringAsync(url);
+
+        var result = new List<Relation>();
+
+        using var document = JsonDocument.Parse(json);
+
+        var relations = document.RootElement.GetProperty("relations");
+
+        foreach (var relation in relations.EnumerateArray())
+        {
+            var artist = relation.GetProperty("artist");
+
+            var targetId = artist.GetProperty("id").GetString();
+            var targetName = artist.GetProperty("name").GetString();
+            var targetType = relation.GetProperty("target-type").GetString();
+            var relationType = relation.GetProperty("type").GetString();
+
+            result.Add(new Relation
+            {
+                TargetId = targetId!,
+                TargetName = targetName!,
+                TargetType = targetType!,
+                RelationType = relationType!
+            });
+        }
+
+        return result;
+    }
+
 }

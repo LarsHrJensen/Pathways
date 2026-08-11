@@ -79,6 +79,11 @@ export class GraphComponent implements AfterViewInit {
             );
 
             this.selectedTrack = selectedTrack;
+
+            if (selectedTrack){
+                console.log('Clicked artist:', selectedTrack.artists);
+            }
+
             this.cdr.detectChanges();
         });
     }

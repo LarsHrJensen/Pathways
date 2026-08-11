@@ -31,4 +31,12 @@ public class MusicController : ControllerBase
         return Ok(result);
     }
 
+    [HttpGet("release-relations/{mbid}")]
+    public async Task<IActionResult> GetReleaseRelations(string mbid)
+    {
+        var result = await _musicBrainzService.GetReleaseRelationsAsync(mbid);
+
+        return Ok(result);
+    }
+
 }
