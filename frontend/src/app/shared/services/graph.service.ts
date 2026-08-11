@@ -7,85 +7,121 @@ import { Track } from '../models/track';
 })
 export class GraphService {
 
-    // Creates a graph using valence and energy as node coordinates
+  // Creates a graph using valence and energy as node coordinates
+  createGraph(tracks: Track[]): Graph {
 
-    createGraph(tracks: Track[]): Graph {
+    const graph = new Graph();
 
-        const graph = new Graph();
-     
-        tracks.forEach((track) => {
+    tracks.forEach((track) => {
 
-            const red = Math.round(track.valence * 255);
-            const blue = Math.round((1 - track.valence) * 255);
+      const red = Math.round(track.valence * 255);
+      const blue = Math.round((1 - track.valence) * 255);
 
-            const brightness = 0.7 + track.energy * 0.3; // Adjust brightness based on energy
+      // Adjust brightness based on energy
+      const brightness = 0.7 + track.energy * 0.3;
 
-            const color = `rgb(${Math.round(red * brightness)}, 0, ${Math.round(blue * brightness)})`;
+      const color = `rgb(${Math.round(red * brightness)}, 0, ${Math.round(blue * brightness)})`;
 
-            graph.addNode(track.uri, {
-                label: `${track.name}`,
-                x: track.valence,
-                y: track.energy,
-                size: 5,
-                color: color
-            });
-        });
-        
-        tracks.forEach(track => {
-            const closestTrack = this.findClosestTrackByEnergyAndValence(     //correct this when exploring different methods finding closest track
-                track,
-                tracks
-            );
+      graph.addNode(track.uri, {
+        label: `${track.name}`,
+        x: track.valence,
+        y: track.energy,
+        size: 5,
+        color: color
+      });
+    });
 
-            if (closestTrack) {
-                graph.mergeEdge(
-                    track.uri, 
-                    closestTrack.track.uri);
-            }
-        });
+    tracks.forEach((track) => {
 
-        return graph;
+      const closestTrack = this.findClosestTrackByEnergyAndValence(
+        track,
+        tracks
+      );
+
+      if (closestTrack) {
+        graph.mergeEdge(
+          track.uri,
+          closestTrack.track.uri
+        );
+      }
+    });
+
+    return graph;
+  }
+
+  addArtistNode(
+    graph: Graph,
+    sourceNodeId: string,
+    artistId: string,
+    artistName: string,
+    index: number,
+    total: number
+  ): void {
+
+    if (graph.hasNode(artistId)) {
+      return;
     }
 
-        // Finds the closest track using Euclidean distance in valence/energy space
+    const sourceAttributes = graph.getNodeAttributes(sourceNodeId);
 
-        private findClosestTrackByEnergyAndValence(
-            currentTrack: Track,
-            tracks: Track[]
-        ): { track: Track; difference: number } | undefined {
+    const radius = 0.02
+    const angle = (2* Math.PI * index) / total;
 
-            let closestTrack: Track | undefined;
-            let smallestDifference = Infinity;
+    graph.addNode(artistId, {
+      label: artistName,
+      x: sourceAttributes['x'] + Math.cos(angle) * radius,
+      y: sourceAttributes['y'] + Math.sin(angle) * radius,
+      size: 4
+    });
+  }
 
-            tracks.forEach(track => {
-                if (track.uri === currentTrack.uri) {
-                    return;
-                }
+  // Finds the closest track using Euclidean distance in valence/energy space
+  private findClosestTrackByEnergyAndValence(
+    currentTrack: Track,
+    tracks: Track[]
+  ): { track: Track; difference: number } | undefined {
 
-                const valenceDifference = 
-                    currentTrack.valence - track.valence;
+    let closestTrack: Track | undefined;
+    let smallestDifference = Infinity;
 
-                const energyDifference = 
-                    currentTrack.energy - track.energy;
+    tracks.forEach((track) => {
 
-                const difference = Math.sqrt(
-                    valenceDifference * valenceDifference +
-                    energyDifference * energyDifference
-                );
+      if (track.uri === currentTrack.uri) {
+        return;
+      }
 
-                if (difference < smallestDifference) {
-                    smallestDifference = difference;
-                    closestTrack = track;
-                }
-            });
+      const valenceDifference =
+        currentTrack.valence - track.valence;
 
-            if (closestTrack) {
-                return {
-                    track: closestTrack,
-                    difference: smallestDifference,
-                };
-            }
+      const energyDifference =
+        currentTrack.energy - track.energy;
 
-            return undefined;
-        }
+      const difference = Math.sqrt(
+        valenceDifference * valenceDifference +
+        energyDifference * energyDifference
+      );
+
+      if (difference < smallestDifference) {
+        smallestDifference = difference;
+        closestTrack = track;
+      }
+    });
+
+    if (closestTrack) {
+      return {
+        track: closestTrack,
+        difference: smallestDifference,
+      };
+    }
+
+    return undefined;
+  }
+
+  addArtistEdge(
+    graph: Graph,
+    sourceNodeId: string,
+    artistId: string
+  ): void {
+    graph.mergeEdge(sourceNodeId, artistId);
+  }
 }
