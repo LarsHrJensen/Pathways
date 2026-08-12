@@ -1,0 +1,266 @@
+# Pathways Roadmap
+
+Pathways is an exploratory music discovery application built around interactive
+graphs. Rather than recommending music through a traditional algorithmic feed,
+Pathways lets the user actively follow relationships between artists, bands,
+collaborators, genres, labels, tracks, and other musical entities.
+
+The roadmap below describes the current direction of the project. It is not a
+fixed implementation plan and will evolve as new data sources and exploration
+patterns are introduced.
+
+---
+
+## Current State
+
+The first working exploration flow is implemented.
+
+- [x] Import playlist data from CSV
+- [x] Visualize playlist tracks as an interactive graph
+- [x] Position tracks using audio features such as valence and energy
+- [x] Display track metadata
+- [x] Connect the Angular frontend to the ASP.NET Core backend
+- [x] Integrate MusicBrainz artist search
+- [x] Retrieve artist-to-artist relationships from MusicBrainz
+- [x] Expand playlist nodes with related artists
+- [x] Continue exploration by clicking newly discovered artist nodes
+- [x] Prevent duplicate artist nodes
+
+At this stage, it is possible to start from a playlist and follow MusicBrainz
+relationships across multiple degrees of separation.
+
+---
+
+## Phase 1 – Graph Exploration & Navigation
+
+The immediate priority is making larger explorations easier to understand and
+control.
+
+### Expand and collapse nodes
+
+- [ ] Track whether a node is expanded or collapsed
+- [ ] Collapse relations by clicking an expanded node again
+- [ ] Handle shared nodes without removing connections used elsewhere
+- [ ] Avoid unnecessary repeated API requests
+
+### Exploration path
+
+Keep track of how the user arrived at the current node.
+
+Example:
+
+`Pulp → Artist A → Artist B → Stereolab`
+
+- [ ] Track the active exploration path
+- [ ] Display the path as a breadcrumb/tracker
+- [ ] Allow navigation back through the path
+- [ ] Highlight the active path in the graph
+- [ ] Consider saving interesting discovery paths
+
+### Control graph growth
+
+- [ ] Limit the number of relations expanded at once
+- [ ] Add "show more" functionality
+- [ ] Filter relations by type
+- [ ] Improve handling of large graphs
+- [ ] Explore focus modes for reducing visual noise
+
+---
+
+## Phase 2 – Richer Graph Semantics
+
+The graph should communicate what its nodes and edges represent without
+requiring the user to inspect every item individually.
+
+### Node types
+
+Extend the current node type model beyond tracks and generic artists.
+
+Possible node types:
+
+- Track
+- Person
+- Band / group
+- Label
+- Genre
+
+### Visual differentiation
+
+- [ ] Use different visual styles for different node types
+- [ ] Add a graph legend
+- [ ] Explore node size as an indicator of connectivity
+- [ ] Consider displaying the number of known relations
+
+For example, people, bands, labels, and genres could each have their own
+recognizable visual identity.
+
+### Relationship information
+
+- [ ] Store relationship metadata on graph edges
+- [ ] Display relationship types such as:
+  - member of band
+  - involved with
+  - producer
+  - performer
+  - arranger
+  - conductor
+- [ ] Make the relationship that led to the current node visible
+- [ ] Use relationship information in the exploration path
+
+---
+
+## Phase 3 – Artist & Entity Information
+
+Different node types should provide information relevant to that entity rather
+than sharing a generic metadata popup.
+
+### Artist / band information
+
+Possible information includes:
+
+- Short artist description
+- Associated bands / projects
+- Collaborators
+- Known or notable connections
+- Associated genres
+- Number and types of known relationships
+- The relationship through which the artist was discovered
+
+### Track information
+
+Continue improving the existing track information, including:
+
+- Track title
+- Artist
+- Release information
+- Year
+- Genre
+- Audio characteristics where available
+
+Additional data sources such as Wikidata or Wikipedia may later complement
+MusicBrainz where richer descriptive information is useful.
+
+---
+
+## Phase 4 – Multiple Exploration Starting Points
+
+Playlist upload should become one of several ways to begin exploring music.
+
+### Artist and band search
+
+- [ ] Search directly for an artist or band
+- [ ] Create the selected result as a starting node
+- [ ] Explore its relationships without requiring a playlist upload
+
+### Labels
+
+Explore music through record labels.
+
+Example:
+
+`Warp Records → artist → collaborator → another project`
+
+- [ ] Add labels as graph entities
+- [ ] Retrieve artists/releases associated with labels
+- [ ] Navigate between labels and artists
+
+### Genres
+
+- [ ] Add genres as possible graph entities
+- [ ] Explore artists associated with a genre
+- [ ] Navigate between genres and artists
+- [ ] Investigate how genre data from different sources should be combined
+
+The long-term goal is to allow users to start almost anywhere in the musical
+network and follow whichever path becomes interesting.
+
+---
+
+## Phase 5 – Discovery Filters
+
+As more data sources and entity types are introduced, users should be able to
+control the type of exploration they want.
+
+Possible filters include:
+
+- [ ] Time period / release year
+- [ ] Relationship type
+- [ ] Genre
+- [ ] Label
+- [ ] Number of degrees of separation
+- [ ] Maximum relations per node
+- [ ] Person / band / track / label visibility
+
+Filters should help control the data flow without removing the possibility of
+unexpected discoveries.
+
+---
+
+## Phase 6 – Save Discoveries
+
+Exploration should eventually lead to something the user can keep.
+
+- [ ] Select interesting tracks/artists discovered in the graph
+- [ ] Maintain a temporary discovery collection
+- [ ] Export discovered tracks as CSV
+- [ ] Save interesting exploration paths
+- [ ] Investigate direct Spotify playlist creation
+
+Direct Spotify integration would require authentication and appropriate API
+permissions and is therefore considered a later feature.
+
+---
+
+## Phase 7 – Playlist Tools & Analysis
+
+Pathways may later expand beyond graph exploration into tools for understanding
+a user's own music collection.
+
+### Multiple playlists
+
+- [ ] Import multiple playlists
+- [ ] Merge playlists into a combined graph
+- [ ] Compare playlists
+- [ ] Identify shared and unique artists
+- [ ] Explore relationships between otherwise separate playlists
+
+### Playlist analysis
+
+Possible analyses include:
+
+- Genre distribution
+- Release periods
+- Artist frequency
+- Audio-feature distributions
+- Relationship clusters
+- Highly connected artists
+- Similarities and differences between playlists
+
+The purpose of analytics should remain exploratory rather than simply producing
+statistics.
+
+---
+
+## Longer-Term Direction
+
+Pathways should evolve from a playlist visualization into a general music
+exploration system.
+
+A user might begin with:
+
+`My playlist`
+
+`Pulp`
+
+`Warp Records`
+
+`Post-rock`
+
+and move through a network of:
+
+`tracks ↔ people ↔ bands ↔ collaborations ↔ labels ↔ genres`
+
+The central idea remains the same:
+
+**Start somewhere familiar. Follow the connections. Discover somewhere
+unexpected.**
