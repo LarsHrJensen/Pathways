@@ -43,7 +43,7 @@ Development is currently focused on:
 - **Saving discoveries** – select interesting discoveries, export them to CSV, save exploration paths, and potentially create playlists through Spotify.
 - **Playlist exploration and analysis** – combine and compare multiple playlists and explore patterns within a user's own music collection.
 
-A more detailed development plan is available in [the roadmap](docs/ROADMAP.md).
+A more detailed development plan is available in [the roadmap](docs/roadmap.md).
 
 ## Technology Stack
 
