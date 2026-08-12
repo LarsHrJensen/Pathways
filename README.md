@@ -14,28 +14,51 @@ For short video of the main idea, see:
 
 ## Current Features
 
-- Angular application structure
-- Track data model
-- CSV playlist import
-- Playlist management through Angular services
-- Sigma.js graph visualization
-- ASP.NET Core API
-
-## Technology Stack
-
-Frontend:
-- Angular
-- TypeScript
-
-Backend:
-- C#
-
-Planned:
-- PostGreSQL Server
+- Import playlist data from CSV
+- Visualize playlist tracks as an interactive graph
+- Position tracks using audio features such as valence and energy
+- Display track metadata
+- Connect the Angular frontend to the ASP.NET Core backend
+- Integrate MusicBrainz artist search
+- Retrieve artist-to-artist relationships from MusicBrainz
+- Expand playlist nodes with related artists
+- Continue exploration by clicking newly discovered artist nodes
+- Prevent duplicate artist nodes
 
 ## Roadmap
 
-- Interactive music graph
-- External music API integration
-- User profiles and music history
-- Music similarity analysis
+Pathways is currently evolving from a playlist visualization into a broader
+music exploration tool. The goal is to let users start somewhere familiar,
+follow musical connections, and discover unexpected paths through artists,
+bands, collaborations, labels, genres, and tracks.
+
+Development is currently focused on:
+
+- **Graph exploration** – expand and collapse nodes, control graph growth, and make multi-step exploration easier to navigate.
+- **Path tracking** – keep track of the route through artists and relationships as the user explores the graph.
+- **Richer graph semantics** – distinguish between tracks, people, bands, labels, and genres, and make relationship types visible.
+- **Entity information** – provide richer information about artists and bands, including collaborations, associated projects, genres, and other relevant context.
+- **Multiple starting points** – allow exploration to begin from an artist, band, label, or genre in addition to an imported playlist.
+- **Discovery filters** – filter exploration by relationship type, time period, genre, distance, and other criteria.
+- **Saving discoveries** – select interesting discoveries, export them to CSV, save exploration paths, and potentially create playlists through Spotify.
+- **Playlist exploration and analysis** – combine and compare multiple playlists and explore patterns within a user's own music collection.
+
+A more detailed development plan is available in [the roadmap](docs/ROADMAP.md).
+
+## Technology Stack
+
+### Frontend
+- Angular
+- TypeScript
+- Sigma.js
+- Graphology
+- Papa Parse
+
+### Backend
+- ASP.NET Core Web API
+- C#
+- MusicBrainz API
+
+### Planned
+- PostgreSQL
+- Additional music data sources
