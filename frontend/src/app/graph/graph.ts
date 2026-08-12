@@ -6,6 +6,7 @@ import { Track } from '../shared/models/track';
 import { ChangeDetectorRef } from '@angular/core';
 import Graph from 'graphology';
 import { MusicBrainzApiService } from '../shared/services/musicbrainz-api.service';
+import { ArtistRelation } from '../shared/models/artist-relation';
 
 @Component({
   selector: 'app-graph',
@@ -74,55 +75,111 @@ export class GraphComponent implements AfterViewInit {
         });
     }
 
-    
-    // Handles node click events and update the selected track
+
     private setupNodeClick(tracks: Track[]): void {
     this.sigma!.on('clickNode', ({ node }) => {
+            const nodeType = this.graph!.getNodeAttribute(node, 'nodeType');
+                console.log('Node type:', nodeType);
+
             const selectedTrack = tracks.find(
             track => track.uri === node
             );
 
             this.selectedTrack = selectedTrack;
 
-            if (selectedTrack) {
-                this.musicbrainzApiService
-                .getArtist(selectedTrack.artists)
-                .subscribe(artist => {
-                    console.log('MusicBrainz artist data:', artist);
-                    console.log('MBID:', artist.id);
+            if (nodeType === 'track' && selectedTrack){
+                this.loadArtistRelations(selectedTrack, node);
+            }
 
-                    this.musicbrainzApiService
-                    .getArtistRelations(artist.id)
-                    .subscribe(relations => {
-                        console.log('Artist relations:', relations);
-
-                            const memberRelations = relations.filter(
-                                relation => relation.relationType === 'member of band'
-                            );
-
-                            memberRelations.forEach((relation, index) => {
-                                this.graphService.addArtistNode(
-                                    this.graph!,
-                                    node,
-                                    relation.artistId,
-                                    relation.artistName,
-                                    index,
-                                    memberRelations.length
-                            );
-
-                            this.graphService.addArtistEdge(
-                                this.graph!,
-                                node,
-                                relation.artistId
-                            );
-                            
-                        });
-                    });
-                });
+            if (nodeType === 'artist'){
+                this.loadRelationByArtistId(node);
             }
 
             this.cdr.detectChanges();
         });
+    }
+
+    //Handles 1st click on track and gives band members only
+    private addMemberRelationsToGraph(
+        relations: ArtistRelation[],
+        sourceNode: string
+    ): void {
+        const memberRelations = relations.filter(
+            relation => relation.relationType === 'member of band'
+        );
+
+        memberRelations.forEach((relation, index) => {
+            this.graphService.addArtistNode(
+                this.graph!,
+                sourceNode,
+                relation.artistId,
+                relation.artistName,
+                index,
+                memberRelations.length
+            );
+
+            this.graphService.addArtistEdge(
+                this.graph!,
+                sourceNode,
+                relation.artistId
+            );
+        });
+    }
+
+    //Handles 2nd click on specific band member to show relations to him/her
+    private addRelationsToBandMember(
+        relations: ArtistRelation[],
+        sourceNode: string
+    ): void{
+        relations.forEach((relation, index) => {
+            this.graphService.addArtistNode(
+                this.graph!,
+                sourceNode,
+                relation.artistId,
+                relation.artistName,
+                index,
+                relations.length
+            );
+
+            this.graphService.addArtistEdge(
+                this.graph!,
+                sourceNode,
+                relation.artistId
+            );
+        })
+    }
+
+
+    private loadArtistRelations(
+        selectedTrack: 
+        Track,sourceNode: string
+    ): void {
+        this.musicbrainzApiService
+            .getArtist(selectedTrack.artists)
+            .subscribe(artist => {
+                console.log('MusicBrainz artist data:', artist);
+                console.log('MBID:', artist.id);
+
+                this.musicbrainzApiService
+                    .getArtistRelations(artist.id)
+                    .subscribe(relations => {
+                        console.log('Artist relations:', relations);
+
+                        this.addMemberRelationsToGraph(relations, sourceNode);
+                    });
+            });
+    }
+
+    private loadRelationByArtistId(
+        artistId: string
+    ): void {
+        this.musicbrainzApiService
+            .getArtistRelations(artistId)
+            .subscribe(relations => {
+                console.log('Clicked artist relations:', relations);
+
+                this.addRelationsToBandMember(relations, artistId);
+            });
     }
 
     

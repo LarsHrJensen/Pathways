@@ -27,7 +27,8 @@ export class GraphService {
         x: track.valence,
         y: track.energy,
         size: 5,
-        color: color
+        color: color,
+        nodeType: 'track'
       });
     });
 
@@ -49,30 +50,31 @@ export class GraphService {
     return graph;
   }
 
-  addArtistNode(
-    graph: Graph,
-    sourceNodeId: string,
-    artistId: string,
-    artistName: string,
-    index: number,
-    total: number
-  ): void {
+    addArtistNode(
+        graph: Graph,
+        sourceNodeId: string,
+        artistId: string,
+        artistName: string,
+        index: number,
+        total: number
+    ): void {
 
-    if (graph.hasNode(artistId)) {
-      return;
-    }
+        if (graph.hasNode(artistId)) {
+        return;
+        }
 
-    const sourceAttributes = graph.getNodeAttributes(sourceNodeId);
+        const sourceAttributes = graph.getNodeAttributes(sourceNodeId);
 
-    const radius = 0.02
-    const angle = (2* Math.PI * index) / total;
+        const radius = 0.02
+        const angle = (2* Math.PI * index) / total;
 
-    graph.addNode(artistId, {
-      label: artistName,
-      x: sourceAttributes['x'] + Math.cos(angle) * radius,
-      y: sourceAttributes['y'] + Math.sin(angle) * radius,
-      size: 4
-    });
+        graph.addNode(artistId, {
+        label: artistName,
+        x: sourceAttributes['x'] + Math.cos(angle) * radius,
+        y: sourceAttributes['y'] + Math.sin(angle) * radius,
+        size: 4,
+        nodeType: 'artist'
+        });
   }
 
   // Finds the closest track using Euclidean distance in valence/energy space
