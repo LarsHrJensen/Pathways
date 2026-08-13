@@ -65,6 +65,11 @@ Example:
 - [ ] Improve handling of large graphs
 - [ ] Explore focus modes for reducing visual noise
 
+### Polish
+
+- [ ] Add fading effects when nodes expand and collapse
+- [ ] Animate edges making the illusion that they grow from node to node
+
 ---
 
 ## Phase 2 – Richer Graph Semantics
