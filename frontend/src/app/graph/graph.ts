@@ -129,8 +129,18 @@ export class GraphComponent implements AfterViewInit {
     //Handles 2nd click on specific band member to show relations to him/her
     private addRelationsToBandMember(
         relations: ArtistRelation[],
-        sourceNode: string
+        sourceNode: string,
+        parentNodeId: string
     ): void{
+
+        const parentAttributes = this.graph!.getNodeAttributes(parentNodeId);
+        const sourceAttibutes = this.graph!.getNodeAttributes(sourceNode);
+
+        const directionAngle = Math.atan2(
+            sourceAttibutes['y'] - parentAttributes['y'],
+            sourceAttibutes['x'] - parentAttributes['x']
+        );
+
         relations.forEach((relation, index) => {
             this.graphService.addArtistNode(
                 this.graph!,
@@ -138,7 +148,8 @@ export class GraphComponent implements AfterViewInit {
                 relation.artistId,
                 relation.artistName,
                 index,
-                relations.length
+                relations.length,
+                directionAngle
             );
 
             this.graphService.addArtistEdge(
@@ -173,12 +184,21 @@ export class GraphComponent implements AfterViewInit {
     private loadRelationByArtistId(
         artistId: string
     ): void {
+
+        const parentNodeId = this.graph!.getNodeAttribute(
+            artistId,
+            'parentNodeId'
+        );
+
         this.musicbrainzApiService
             .getArtistRelations(artistId)
             .subscribe(relations => {
                 console.log('Clicked artist relations:', relations);
 
-                this.addRelationsToBandMember(relations, artistId);
+                this.addRelationsToBandMember(
+                    relations, 
+                    artistId, 
+                    parentNodeId);
             });
     }
 

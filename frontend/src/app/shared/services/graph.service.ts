@@ -56,7 +56,8 @@ export class GraphService {
     artistId: string,
     artistName: string,
     index: number,
-    total: number
+    total: number,
+    directionAngle?: number
   ): void {
 
     if (graph.hasNode(artistId)) {
@@ -66,7 +67,31 @@ export class GraphService {
     const sourceAttributes = graph.getNodeAttributes(sourceNodeId);
 
     const radius = 0.02
-    const angle = (2 * Math.PI * index) / total;
+    
+    let angle: number;
+
+    if(directionAngle === undefined) {
+      //1st click nodes in 360 degrees around node
+      angle = (2 * Math.PI * index) / total;
+    } else {
+      //Following click in 180 degrees away from parent node
+      let spread: number;
+
+      if (total <= 2) {
+        spread = Math.PI / 3 // 60°
+      } else {
+        spread = Math.PI; // 180°
+      }  
+
+      if (total === 1) {
+        angle = directionAngle;
+      } else {
+        const startAngle = directionAngle - spread / 2;
+        const angleStep = spread / (total - 1);
+
+        angle = startAngle + angleStep * index;
+      }
+    }
 
     const x = sourceAttributes['x'] + Math.cos(angle) * radius;
     const y = sourceAttributes['y'] + Math.sin(angle) * radius;
@@ -85,7 +110,8 @@ export class GraphService {
       x: sourceAttributes['x'] + Math.cos(angle) * radius,
       y: sourceAttributes['y'] + Math.sin(angle) * radius,
       size: 4,
-      nodeType: 'artist'
+      nodeType: 'artist',
+      parentNodeId: sourceNodeId
     });
   }
 
