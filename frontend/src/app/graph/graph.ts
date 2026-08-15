@@ -97,6 +97,15 @@ export class GraphComponent implements AfterViewInit {
 
             this.cdr.detectChanges();
         });
+
+    this.sigma!.on('doubleClickNode', ({ node }) => {
+        const artistName = this.graph!.getNodeAttribute(node, 'label');
+
+        const searchUrl =
+            `https://www.google.com/search?q=${encodeURIComponent(artistName)}`;
+        
+        window.open(searchUrl, '_blank');
+    });
     }
 
     //Handles 1st click on track and gives band members only
@@ -105,7 +114,11 @@ export class GraphComponent implements AfterViewInit {
         sourceNode: string
     ): void {
         const memberRelations = relations.filter(
-            relation => relation.relationType === 'member of band'
+            relation => 
+                relation.relationType === 'member of band' ||
+                relation.relationType === 'instrumental supporting musician' ||
+                relation.relationType === 'conductor' ||
+                relation.relationType === 'tribute'
         );
 
         memberRelations.forEach((relation, index) => {
@@ -180,6 +193,7 @@ export class GraphComponent implements AfterViewInit {
                     });
             });
     }
+
 
     private loadRelationByArtistId(
         artistId: string

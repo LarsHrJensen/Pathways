@@ -66,49 +66,30 @@ export class GraphService {
 
     const sourceAttributes = graph.getNodeAttributes(sourceNodeId);
 
-    const radius = 0.02
-    
-    let angle: number;
+    let radius = 0.02
 
-    if(directionAngle === undefined) {
-      //1st click nodes in 360 degrees around node
-      angle = (2 * Math.PI * index) / total;
-    } else {
-      //Following click in 180 degrees away from parent node
-      let spread: number;
+   const angle = this.calculateAngle(
+    index,
+    total,
+    directionAngle
+   );
 
-      if (total <= 2) {
-        spread = Math.PI / 3 // 60°
-      } else {
-        spread = Math.PI; // 180°
-      }  
+    let x = sourceAttributes['x'] + Math.cos(angle) * radius;
+    let y = sourceAttributes['y'] + Math.sin(angle) * radius;
 
-      if (total === 1) {
-        angle = directionAngle;
-      } else {
-        const startAngle = directionAngle - spread / 2;
-        const angleStep = spread / (total - 1);
+    if (this.isPositionOccupied(graph, x, y, 0.01)) {
 
-        angle = startAngle + angleStep * index;
-      }
-    }
+    const angleOffset = 0.15;
+    const alternativeAngle = angle + angleOffset;
 
-    const x = sourceAttributes['x'] + Math.cos(angle) * radius;
-    const y = sourceAttributes['y'] + Math.sin(angle) * radius;
-
-    const occupied = this.isPositionOccupied(
-      graph,
-      x,
-      y,
-      0.01
-    );
-
-    console.log('Position occupied:', occupied);
+    x = sourceAttributes['x'] + Math.cos(alternativeAngle) * radius;
+    y = sourceAttributes['y'] + Math.sin(alternativeAngle) * radius;
+  }
 
     graph.addNode(artistId, {
       label: artistName,
-      x: sourceAttributes['x'] + Math.cos(angle) * radius,
-      y: sourceAttributes['y'] + Math.sin(angle) * radius,
+      x: x,
+      y: y,
       size: 4,
       nodeType: 'artist',
       parentNodeId: sourceNodeId
@@ -143,6 +124,42 @@ export class GraphService {
 
     return occupied;
   }
+
+  private calculateAngle(
+    index: number,
+    total: number,
+    directionAngle?: number
+  ): number {
+
+    const baseDirection = directionAngle ?? 0;
+
+    // 1 node: straight ahead
+    if (total === 1) {
+      return baseDirection;
+    }
+
+    // 2 nodes: 60° spread around the direction
+    if (total === 2) {
+      const spread = Math.PI / 3;
+      const startAngle = baseDirection - spread / 2;
+      const angleStep = spread / (total - 1);
+
+      return startAngle + angleStep * index;
+    }
+
+    // First click with 3+ nodes: spread 360°
+    if (directionAngle === undefined) {
+      return (2 * Math.PI * index) / total;
+    }
+
+    // Following clicks with 3+ nodes: spread 180° away from parent
+    const spread = Math.PI;
+    const startAngle = directionAngle - spread / 2;
+    const angleStep = spread / (total - 1);
+
+    return startAngle + angleStep * index;
+  }
+  
 
   // Finds the closest track using Euclidean distance in valence/energy space
   private findClosestTrackByEnergyAndValence(
