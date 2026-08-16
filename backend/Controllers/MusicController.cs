@@ -26,6 +26,8 @@ public class MusicController : ControllerBase
     [HttpGet("relations/{mbid}")]
     public async Task<IActionResult> GetRelations(string mbid)
     {
+        await Task.Delay(1100); //to avoid 503 as musicbrainz only accepts 1 api-call pr sec
+
         var result = await _musicBrainzService.GetArtistRelationsAsync(mbid);
 
         return Ok(result);

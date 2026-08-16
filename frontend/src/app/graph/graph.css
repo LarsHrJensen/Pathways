@@ -53,3 +53,8 @@
     display: inline-block;
     width: 70px;
 }
+
+.breadcrumb {
+    position: absolute;
+    z-index: 10;
+}

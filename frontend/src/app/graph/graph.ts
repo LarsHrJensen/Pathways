@@ -21,6 +21,8 @@ export class GraphComponent implements AfterViewInit {
 
   private sigma?: Sigma;
   private graph?: Graph;
+  private activePathNodeIds = new Set<string>();
+  activePathLabels: string[] = [];
 
   selectedTrack?: Track;
 
@@ -75,7 +77,9 @@ export class GraphComponent implements AfterViewInit {
     }
 
     private setupNodeClick(tracks: Track[]): void {
-    this.sigma!.on('clickNode', ({ node }) => {
+        this.sigma!.on('clickNode', ({ node }) => {
+            this.updateActivePath(node);
+
             const nodeType = this.graph!.getNodeAttribute(node, 'nodeType');
                 console.log('Node type:', nodeType);
 
@@ -254,6 +258,32 @@ export class GraphComponent implements AfterViewInit {
         }
 
         this.graph!.setNodeAttribute(nodeId, 'expanded', !expanded);
+    }
+
+    private updateActivePath(nodeId: string): void {
+        const graph = this.graph!;
+
+        this.activePathNodeIds.clear();
+        this.activePathLabels = [];
+
+        let currentNodeId: string | undefined = nodeId;
+
+        while (currentNodeId && graph.hasNode(currentNodeId)) {
+            this.activePathNodeIds.add(currentNodeId);
+
+            const label = graph.getNodeAttribute(currentNodeId, 'label');
+            this.activePathLabels.unshift(label);
+
+            const parentNodeId: string | undefined = graph.getNodeAttribute(
+                currentNodeId,
+                'parentNodeId'
+            );
+
+            currentNodeId = parentNodeId;
+        }
+
+        console.log('Active path:', this.activePathNodeIds);
+        console.log('Active path labels:', this.activePathLabels);
     }
    
     // Determines the label of a track based on the zoom ratio

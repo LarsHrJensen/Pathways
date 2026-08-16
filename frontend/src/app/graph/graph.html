@@ -1,4 +1,15 @@
 <div class="graph-layout">
+  @if (activePathLabels.length > 0) {
+    <div class="breadcrumb">
+      @for (label of activePathLabels; track label; let last = $last){
+        <span>{{ label }}</span>
+
+        @if (!last) {
+          <span> -> </span>
+        }
+      }
+    </div>
+  }
   <div #container class="graph-container"></div>
 
   @if (selectedTrack) {

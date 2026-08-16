@@ -150,9 +150,18 @@ export class GraphService {
       return startAngle + angleStep * index;
     }
 
-    // First click with 3+ nodes: spread 360°
+        // First click with 5+ nodes: spread 360°
     if (directionAngle === undefined) {
       return (2 * Math.PI * index) / total;
+    }
+
+    //following clicks with 3-4 nodes: spread 120°
+    if(total < 5) {
+      const spread = (2 * Math.PI) / 3
+      const startAngle = directionAngle - spread / 2;
+      const angleStep = spread / (total - 1);
+
+      return startAngle + angleStep * index;
     }
 
     // Following clicks with 3+ nodes: spread 180° away from parent
