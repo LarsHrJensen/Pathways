@@ -61,6 +61,7 @@ export class GraphService {
   ): void {
 
     if (graph.hasNode(artistId)) {
+      graph.setNodeAttribute(artistId, 'hidden', false);
       return;
     }
 
@@ -92,7 +93,9 @@ export class GraphService {
       y: y,
       size: 4,
       nodeType: 'artist',
-      parentNodeId: sourceNodeId
+      parentNodeId: sourceNodeId,
+      expanded: false,
+      relationLoaded: false
     });
   }
 

@@ -50,7 +50,6 @@ export class GraphComponent implements AfterViewInit {
         });
     }
 
-    
     // Sets up zoom labels based on the camera's zoom ratio
     private setupZoomLabels(graph: Graph, tracks: Track[]): void {
     const camera = this.sigma!.getCamera();
@@ -75,37 +74,33 @@ export class GraphComponent implements AfterViewInit {
         });
     }
 
-
     private setupNodeClick(tracks: Track[]): void {
     this.sigma!.on('clickNode', ({ node }) => {
             const nodeType = this.graph!.getNodeAttribute(node, 'nodeType');
                 console.log('Node type:', nodeType);
 
             const selectedTrack = tracks.find(
-            track => track.uri === node
+                track => track.uri === node
             );
 
             this.selectedTrack = selectedTrack;
 
             if (nodeType === 'track' && selectedTrack){
-                this.loadArtistRelations(selectedTrack, node);
+                this.handleTrackClick(selectedTrack, node);
             }
 
             if (nodeType === 'artist'){
-                this.loadRelationByArtistId(node);
+               this.handleArtistClick(node);
             }
 
             this.cdr.detectChanges();
         });
 
-    this.sigma!.on('doubleClickNode', ({ node }) => {
-        const artistName = this.graph!.getNodeAttribute(node, 'label');
+        this.sigma!.on('rightClickNode', ({ node, event }) => {
+            event.preventSigmaDefault();
 
-        const searchUrl =
-            `https://www.google.com/search?q=${encodeURIComponent(artistName)}`;
-        
-        window.open(searchUrl, '_blank');
-    });
+            this.searchNodeOnGoogle(node);
+        });
     }
 
     //Handles 1st click on track and gives band members only
@@ -173,7 +168,6 @@ export class GraphComponent implements AfterViewInit {
         })
     }
 
-
     private loadArtistRelations(
         selectedTrack: 
         Track,sourceNode: string
@@ -216,7 +210,52 @@ export class GraphComponent implements AfterViewInit {
             });
     }
 
-    
+    private collapseNode(nodeId: string): void {
+        const graph = this.graph!;
+
+        graph.forEachNode((childNodeId, attributes) => {
+            if (attributes['parentNodeId'] === nodeId) {
+                graph.setNodeAttribute(childNodeId, 'hidden', true);
+            }
+        });
+    }
+
+    private expandNode(nodeId: string): void {
+        const graph = this.graph!;
+
+        graph.forEachNode((childNodeId, attributes) => {
+            if (attributes['parentNodeId'] === nodeId) {
+                graph.setNodeAttribute(childNodeId, 'hidden', false);
+            }
+        });
+    }
+
+    private handleTrackClick(
+        selectedTrack: Track,
+        nodeId: string
+    ): void {
+        this.loadArtistRelations(selectedTrack, nodeId);
+    }
+
+    private handleArtistClick(nodeId: string): void {
+        const expanded =
+            this.graph!.getNodeAttribute(nodeId, 'expanded');
+
+        const relationsLoaded =
+        this.graph!.getNodeAttribute(nodeId, 'relationsLoaded');
+
+        if (expanded) {
+            this.collapseNode(nodeId);
+        } else if (relationsLoaded) {
+            this.expandNode(nodeId);
+        } else {
+            this.loadRelationByArtistId(nodeId);
+            this.graph!.setNodeAttribute(nodeId, 'relationsLoaded', true);
+        }
+
+        this.graph!.setNodeAttribute(nodeId, 'expanded', !expanded);
+    }
+   
     // Determines the label of a track based on the zoom ratio
     private getTrackLabel(track: Track, zoomRatio: number): string {
         let label = track.artists;
@@ -230,5 +269,15 @@ export class GraphComponent implements AfterViewInit {
         }
 
         return label;
+    }
+
+    private searchNodeOnGoogle(nodeId: string): void {
+        const label =
+            this.graph!.getNodeAttribute(nodeId, 'label');
+
+        const searchUrl = 
+            `https://www.google.com/search?q=${encodeURIComponent(label)}`;
+
+        window.open(searchUrl, '_blank');
     }
 }
