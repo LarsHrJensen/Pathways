@@ -38,10 +38,10 @@ control.
 
 ### Expand and collapse nodes
 
-- [ ] Track whether a node is expanded or collapsed
-- [ ] Collapse relations by clicking an expanded node again
-- [ ] Handle shared nodes without removing connections used elsewhere
-- [ ] Avoid unnecessary repeated API requests
+- [x] Track whether a node is expanded or collapsed
+- [x] Collapse relations by clicking an expanded node again
+- [x] Handle shared nodes without removing connections used elsewhere
+- [x] Avoid unnecessary repeated API requests
 
 ### Exploration path
 
@@ -51,10 +51,10 @@ Example:
 
 `Pulp → Artist A → Artist B → Stereolab`
 
-- [ ] Track the active exploration path
-- [ ] Display the path as a breadcrumb/tracker
-- [ ] Allow navigation back through the path
-- [ ] Highlight the active path in the graph
+- [x] Track the active exploration path
+- [x] Display the path as a breadcrumb/tracker
+- [x] Allow navigation back through the path
+- [x] Highlight the active path in the graph
 - [ ] Consider saving interesting discovery paths
 
 ### Control graph growth
