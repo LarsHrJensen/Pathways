@@ -21,13 +21,15 @@ export class GraphComponent implements AfterViewInit {
 
   private sigma?: Sigma;
   private graph?: Graph;
+  private activePathNodeIds = new Set<string>();
+  activePathLabels: string[] = [];
 
   selectedTrack?: Track;
 
   constructor(private graphService: GraphService,
               private playlistService: PlaylistService,
               private musicbrainzApiService: MusicBrainzApiService,
-              private cdr: ChangeDetectorRef
+              private cdr: ChangeDetectorRef //Angular service used to recognize changes in components state and the update html
   ) {}
 
    ngAfterViewInit(): void {
@@ -42,7 +44,34 @@ export class GraphComponent implements AfterViewInit {
 
             this.sigma = new Sigma(
             this.graph,
-            this.container.nativeElement
+            this.container.nativeElement, {
+                defaultDrawNodeLabel: (context, data, settings) => {
+                    const nodeType = this.graph!.getNodeAttribute(data['key'], 'nodeType');
+                    console.log('Node type:', nodeType);
+
+                    if (!data.label) {
+                        return;
+                    }
+
+                    context.font =
+                    `${settings.labelWeight} ${settings.labelSize}px ${settings.labelFont}`;
+
+                    if (nodeType === 'track'){
+                        context.textAlign = 'center';
+                        context.fillText(
+                        data.label,
+                        data.x,
+                        data.y - 15);
+                    }else {
+                        context.textAlign = 'left';
+                        context.fillText(
+                            data.label,
+                            data.x + 17,
+                            data.y + 3
+                        );
+                    }
+                }
+            }
             );
 
             this.setupZoomLabels(this.graph, tracks);
@@ -50,7 +79,6 @@ export class GraphComponent implements AfterViewInit {
         });
     }
 
-    
     // Sets up zoom labels based on the camera's zoom ratio
     private setupZoomLabels(graph: Graph, tracks: Track[]): void {
     const camera = this.sigma!.getCamera();
@@ -75,37 +103,48 @@ export class GraphComponent implements AfterViewInit {
         });
     }
 
-
     private setupNodeClick(tracks: Track[]): void {
-    this.sigma!.on('clickNode', ({ node }) => {
+        this.sigma!.on('clickNode', ({ node }) => {
+            this.updateActivePath(node);
+
             const nodeType = this.graph!.getNodeAttribute(node, 'nodeType');
                 console.log('Node type:', nodeType);
 
             const selectedTrack = tracks.find(
-            track => track.uri === node
+                track => track.uri === node
             );
 
             this.selectedTrack = selectedTrack;
 
             if (nodeType === 'track' && selectedTrack){
-                this.loadArtistRelations(selectedTrack, node);
+                this.handleTrackClick(selectedTrack, node);
             }
 
             if (nodeType === 'artist'){
-                this.loadRelationByArtistId(node);
+               this.handleArtistClick(node);
             }
 
             this.cdr.detectChanges();
         });
+
+        this.sigma!.on('rightClickNode', ({ node, event }) => {
+            event.preventSigmaDefault();
+
+            this.searchNodeOnGoogle(node);
+        });
     }
 
-    //Handles 1st click on track and gives band members only
+    //Handles 1st click on track from uploaded playlist
     private addMemberRelationsToGraph(
         relations: ArtistRelation[],
         sourceNode: string
     ): void {
         const memberRelations = relations.filter(
-            relation => relation.relationType === 'member of band'
+            relation => 
+                relation.relationType === 'member of band' ||
+                relation.relationType === 'instrumental supporting musician' ||
+                relation.relationType === 'conductor' ||
+                relation.relationType === 'tribute'
         );
 
         memberRelations.forEach((relation, index) => {
@@ -129,8 +168,18 @@ export class GraphComponent implements AfterViewInit {
     //Handles 2nd click on specific band member to show relations to him/her
     private addRelationsToBandMember(
         relations: ArtistRelation[],
-        sourceNode: string
+        sourceNode: string,
+        parentNodeId: string
     ): void{
+
+        const parentAttributes = this.graph!.getNodeAttributes(parentNodeId);
+        const sourceAttibutes = this.graph!.getNodeAttributes(sourceNode);
+
+        const directionAngle = Math.atan2(
+            sourceAttibutes['y'] - parentAttributes['y'],
+            sourceAttibutes['x'] - parentAttributes['x']
+        );
+
         relations.forEach((relation, index) => {
             this.graphService.addArtistNode(
                 this.graph!,
@@ -138,7 +187,8 @@ export class GraphComponent implements AfterViewInit {
                 relation.artistId,
                 relation.artistName,
                 index,
-                relations.length
+                relations.length,
+                directionAngle
             );
 
             this.graphService.addArtistEdge(
@@ -148,7 +198,6 @@ export class GraphComponent implements AfterViewInit {
             );
         })
     }
-
 
     private loadArtistRelations(
         selectedTrack: 
@@ -170,19 +219,120 @@ export class GraphComponent implements AfterViewInit {
             });
     }
 
+
     private loadRelationByArtistId(
         artistId: string
     ): void {
+
+        const parentNodeId = this.graph!.getNodeAttribute(
+            artistId,
+            'parentNodeId'
+        );
+
         this.musicbrainzApiService
             .getArtistRelations(artistId)
             .subscribe(relations => {
                 console.log('Clicked artist relations:', relations);
 
-                this.addRelationsToBandMember(relations, artistId);
+                this.addRelationsToBandMember(
+                    relations, 
+                    artistId, 
+                    parentNodeId);
             });
     }
 
-    
+    private collapseNode(nodeId: string): void {
+        const graph = this.graph!;
+
+        graph.forEachNode((childNodeId, attributes) => {
+            if (attributes['parentNodeId'] === nodeId) {
+                graph.setNodeAttribute(childNodeId, 'hidden', true);
+            }
+        });
+    }
+
+    private expandNode(nodeId: string): void {
+        const graph = this.graph!;
+
+        graph.forEachNode((childNodeId, attributes) => {
+            if (attributes['parentNodeId'] === nodeId) {
+                graph.setNodeAttribute(childNodeId, 'hidden', false);
+            }
+        });
+    }
+
+    private handleTrackClick(
+        selectedTrack: Track,
+        nodeId: string
+    ): void {
+        
+        const expanded =
+            this.graph!.getNodeAttribute(nodeId, 'expanded');
+
+        const relationLoaded =
+        this.graph!.getNodeAttribute(nodeId, 'relationLoaded');
+
+        if (expanded) {
+            this.collapseNode(nodeId)
+        } else if (relationLoaded) {
+            this.expandNode(nodeId);          
+        } else {
+            this.loadArtistRelations(selectedTrack, nodeId);
+            this.graph!.setNodeAttribute(nodeId, 'relationLoaded', true);
+        }
+
+        this.graph!.setNodeAttribute(nodeId, 'expanded', !expanded);
+
+    }
+
+    private handleArtistClick(nodeId: string): void {
+        const expanded =
+            this.graph!.getNodeAttribute(nodeId, 'expanded');
+
+        const relationLoaded =
+        this.graph!.getNodeAttribute(nodeId, 'relationLoaded');
+
+        if (expanded) {
+            this.collapseNode(nodeId);
+            this.graph!.setNodeAttribute(nodeId, 'color', 'grey');
+        } else if (relationLoaded) {
+            this.expandNode(nodeId);
+            this.graph!.setNodeAttribute(nodeId, 'color', 'green');
+        } else {
+            this.loadRelationByArtistId(nodeId);
+            this.graph!.setNodeAttribute(nodeId, 'relationLoaded', true);
+            this.graph!.setNodeAttribute(nodeId, 'color', 'green');
+        }
+
+        this.graph!.setNodeAttribute(nodeId, 'expanded', !expanded);
+    }
+
+    private updateActivePath(nodeId: string): void {
+        const graph = this.graph!;
+
+        this.activePathNodeIds.clear();
+        this.activePathLabels = [];
+
+        let currentNodeId: string | undefined = nodeId;
+
+        while (currentNodeId && graph.hasNode(currentNodeId)) {
+            this.activePathNodeIds.add(currentNodeId);
+
+            const label = graph.getNodeAttribute(currentNodeId, 'label');
+            this.activePathLabels.unshift(label);
+
+            const parentNodeId: string | undefined = graph.getNodeAttribute(
+                currentNodeId,
+                'parentNodeId'
+            );
+
+            currentNodeId = parentNodeId;
+        }
+
+        console.log('Active path:', this.activePathNodeIds);
+        console.log('Active path labels:', this.activePathLabels);
+    }
+   
     // Determines the label of a track based on the zoom ratio
     private getTrackLabel(track: Track, zoomRatio: number): string {
         let label = track.artists;
@@ -196,5 +346,15 @@ export class GraphComponent implements AfterViewInit {
         }
 
         return label;
+    }
+
+    private searchNodeOnGoogle(nodeId: string): void {
+        const label =
+            this.graph!.getNodeAttribute(nodeId, 'label');
+
+        const searchUrl = 
+            `https://www.google.com/search?q=${encodeURIComponent(label)}`;
+
+        window.open(searchUrl, '_blank');
     }
 }
