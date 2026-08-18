@@ -70,8 +70,6 @@ export class GraphComponent implements AfterViewInit {
                             data.y + 3
                         );
                     }
-                    
-                    
                 }
             }
             );
