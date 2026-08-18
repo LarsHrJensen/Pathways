@@ -1,7 +1,7 @@
 <div class="graph-layout">
   @if (activePathLabels.length > 0) {
     <div class="breadcrumb">
-      @for (label of activePathLabels; track label; let last = $last){
+      @for (label of activePathLabels; track $index; let last = $last){
         <span>{{ label }}</span>
 
         @if (!last) {

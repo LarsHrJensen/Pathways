@@ -28,7 +28,9 @@ export class GraphService {
         y: track.energy,
         size: 5,
         color: color,
-        nodeType: 'track'
+        nodeType: 'track',
+        expanded: false,
+        relationLoaded: false
       });
     });
 

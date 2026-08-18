@@ -29,7 +29,7 @@ export class GraphComponent implements AfterViewInit {
   constructor(private graphService: GraphService,
               private playlistService: PlaylistService,
               private musicbrainzApiService: MusicBrainzApiService,
-              private cdr: ChangeDetectorRef
+              private cdr: ChangeDetectorRef //Angular service used to recognize changes in components state and the update html
   ) {}
 
    ngAfterViewInit(): void {
@@ -44,7 +44,36 @@ export class GraphComponent implements AfterViewInit {
 
             this.sigma = new Sigma(
             this.graph,
-            this.container.nativeElement
+            this.container.nativeElement, {
+                defaultDrawNodeLabel: (context, data, settings) => {
+                    const nodeType = this.graph!.getNodeAttribute(data['key'], 'nodeType');
+                    console.log('Node type:', nodeType);
+
+                    if (!data.label) {
+                        return;
+                    }
+
+                    context.font =
+                    `${settings.labelWeight} ${settings.labelSize}px ${settings.labelFont}`;
+
+                    if (nodeType === 'track'){
+                        context.textAlign = 'center';
+                        context.fillText(
+                        data.label,
+                        data.x,
+                        data.y - 15);
+                    }else {
+                        context.textAlign = 'left';
+                        context.fillText(
+                            data.label,
+                            data.x + 17,
+                            data.y + 3
+                        );
+                    }
+                    
+                    
+                }
+            }
             );
 
             this.setupZoomLabels(this.graph, tracks);
@@ -107,7 +136,7 @@ export class GraphComponent implements AfterViewInit {
         });
     }
 
-    //Handles 1st click on track and gives band members only
+    //Handles 1st click on track from uploaded playlist
     private addMemberRelationsToGraph(
         relations: ArtistRelation[],
         sourceNode: string
@@ -238,23 +267,43 @@ export class GraphComponent implements AfterViewInit {
         selectedTrack: Track,
         nodeId: string
     ): void {
-        this.loadArtistRelations(selectedTrack, nodeId);
+        
+        const expanded =
+            this.graph!.getNodeAttribute(nodeId, 'expanded');
+
+        const relationLoaded =
+        this.graph!.getNodeAttribute(nodeId, 'relationLoaded');
+
+        if (expanded) {
+            this.collapseNode(nodeId)
+        } else if (relationLoaded) {
+            this.expandNode(nodeId);          
+        } else {
+            this.loadArtistRelations(selectedTrack, nodeId);
+            this.graph!.setNodeAttribute(nodeId, 'relationLoaded', true);
+        }
+
+        this.graph!.setNodeAttribute(nodeId, 'expanded', !expanded);
+
     }
 
     private handleArtistClick(nodeId: string): void {
         const expanded =
             this.graph!.getNodeAttribute(nodeId, 'expanded');
 
-        const relationsLoaded =
-        this.graph!.getNodeAttribute(nodeId, 'relationsLoaded');
+        const relationLoaded =
+        this.graph!.getNodeAttribute(nodeId, 'relationLoaded');
 
         if (expanded) {
             this.collapseNode(nodeId);
-        } else if (relationsLoaded) {
+            this.graph!.setNodeAttribute(nodeId, 'color', 'grey');
+        } else if (relationLoaded) {
             this.expandNode(nodeId);
+            this.graph!.setNodeAttribute(nodeId, 'color', 'green');
         } else {
             this.loadRelationByArtistId(nodeId);
-            this.graph!.setNodeAttribute(nodeId, 'relationsLoaded', true);
+            this.graph!.setNodeAttribute(nodeId, 'relationLoaded', true);
+            this.graph!.setNodeAttribute(nodeId, 'color', 'green');
         }
 
         this.graph!.setNodeAttribute(nodeId, 'expanded', !expanded);
