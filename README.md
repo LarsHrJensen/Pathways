@@ -10,7 +10,7 @@ For a detailed description of the vision and concept, see:
 
 For short video of the main idea, see:
 
-[Short video of main functions](https://drive.google.com/file/d/1Ju7mn91_UPhnMo_Museo41MsDokRarpw/view?usp=drive_link)
+[Short video of main functions](https://drive.google.com/file/d/1xEh15RIIVmn6cAGk7--vd4ALoWsBNSm9/view?usp=drive_link)
 
 ## Current Features
 
