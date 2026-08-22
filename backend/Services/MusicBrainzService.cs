@@ -2,6 +2,9 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using System.Text.Json;
 using backend.Models;
+using System.Reflection.Metadata;
+using Microsoft.AspNetCore.Http.HttpResults;
+using System.Security.Claims;
 
 namespace backend.Services;
 
@@ -52,7 +55,7 @@ public class MusicBrainzService
 
         var relations = document.RootElement.GetProperty("relations");
 
-        foreach (var relation in relations.EnumerateArray())
+       foreach (var relation in relations.EnumerateArray())
         {
             var artistId = relation.GetProperty("artist").GetProperty("id").GetString();
             var artistName = relation.GetProperty("artist").GetProperty("name").GetString();
@@ -69,7 +72,7 @@ public class MusicBrainzService
         return result
             .GroupBy(r => new { r.ArtistId, r.RelationType})
             .Select(g => g.First())
-            .ToList();
+            .ToList(); 
     }
 
     public async Task<List<Relation>> GetReleaseRelationsAsync(string mbid)
@@ -104,5 +107,7 @@ public class MusicBrainzService
 
         return result;
     }
+
+    
 
 }
