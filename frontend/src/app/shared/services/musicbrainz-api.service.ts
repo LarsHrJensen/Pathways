@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { MusicBrainzArtist } from '../models/musicbrainz-artist';
 import { ArtistRelation } from '../models/artist-relation';
+import { WikidataArtistHoverInfo } from '../models/wikidata-artist-hover-info'
 
 @Injectable({
     providedIn: 'root'
@@ -21,6 +22,12 @@ export class MusicBrainzApiService {
     getArtistRelations(mbid: string): Observable<ArtistRelation[]> {
         return this.http.get<ArtistRelation[]>(
             `${this.apiUrl}/relations/${mbid}`
+        );
+    }
+
+    getWikidataArtistHoverInfo(wikidataId: string){
+        return this.http.get<WikidataArtistHoverInfo>(
+            `${this.apiUrl}/hover/${wikidataId}`
         );
     }
 }

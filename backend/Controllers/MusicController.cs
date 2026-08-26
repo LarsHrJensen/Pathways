@@ -53,4 +53,22 @@ public class MusicController : ControllerBase
         return Ok(result);
     }
 
+    [HttpGet("hover/{mbid}")]
+    public async Task<IActionResult> GetWikidataIdFromMbId(string mbid)
+    {
+        var wikidataId = await _musicBrainzService.GetWikidataIdAsync(mbid);
+
+        Console.WriteLine($"MBID: {mbid}, Wikidata ID: {wikidataId ?? "none"}");
+
+        if (wikidataId is null)
+        {
+            return NotFound();
+        }    
+
+        var result =
+            await _wikidataService.GetWikidataArtistHoverInfoAsync(wikidataId);
+
+        return Ok(result);
+    }
+
 }

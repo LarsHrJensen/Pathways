@@ -58,3 +58,14 @@
     position: absolute;
     z-index: 10;
 }
+
+.artist-hover {
+  position: absolute;
+  z-index: 10;
+  padding: 10px 12px;
+  background: white;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  pointer-events: none;
+  max-width: 280px;
+}

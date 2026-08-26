@@ -22,4 +22,28 @@
       <p><strong>Genres:</strong> {{ selectedTrack.genres.join(', ') }}</p>
     </div>
   }
+
+  @if (hoveredArtistInfo) {
+  <div
+    class="artist-hover"
+    [style.left.px]="hoverX + 15"
+    [style.top.px]="hoverY + 15"
+  >
+    <strong>{{ hoveredArtistName }}</strong>
+
+    <div>{{ hoveredArtistInfo.lifeSpan }}</div>
+
+    <div>
+      {{ hoveredArtistInfo.occupations.slice(0, 3).join(' · ') }}
+    </div>
+
+    <div>
+      {{ hoveredArtistInfo.genres.join(' · ') }}
+    </div>
+
+    <div>
+      {{ hoveredArtistInfo.bands.join(' · ') }}
+    </div>
+  </div>
+}
 </div>

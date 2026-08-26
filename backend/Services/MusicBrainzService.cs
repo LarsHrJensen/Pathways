@@ -108,6 +108,43 @@ public class MusicBrainzService
         return result;
     }
 
+        public async Task<string?> GetWikidataIdAsync(string mbid)
+    {
+        var url =
+            $"https://musicbrainz.org/ws/2/artist/{mbid}?inc=url-rels&fmt=json";
+
+        var json = await _httpClient.GetStringAsync(url);
+
+        using var document = JsonDocument.Parse(json);
+
+        if (!document.RootElement.TryGetProperty(
+            "relations",
+            out var relations))
+        {
+            return null;
+        }
+
+        foreach (var relation in relations.EnumerateArray())
+        {
+            if (!relation.TryGetProperty("url", out var urlObject))
+            {
+                continue;
+            }
+
+            var resource = urlObject
+                .GetProperty("resource")
+                .GetString();
+
+            if (resource is not null &&
+                resource.Contains("wikidata.org/wiki/"))
+            {
+                return resource.Split('/').Last();
+            }
+        }
+
+        return null;
+    }   
+
     
 
 }

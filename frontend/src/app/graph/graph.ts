@@ -7,6 +7,8 @@ import { ChangeDetectorRef } from '@angular/core';
 import Graph from 'graphology';
 import { MusicBrainzApiService } from '../shared/services/musicbrainz-api.service';
 import { ArtistRelation } from '../shared/models/artist-relation';
+import { setAlternateWeakRefImpl } from '@angular/core/primitives/signals';
+import { WikidataArtistHoverInfo } from '../shared/models/wikidata-artist-hover-info';
 
 @Component({
   selector: 'app-graph',
@@ -19,10 +21,16 @@ export class GraphComponent implements AfterViewInit {
   @ViewChild('container')
   container!: ElementRef;
 
+  private hoverTimeout?: ReturnType<typeof setTimeout>;
   private sigma?: Sigma;
   private graph?: Graph;
   private activePathNodeIds = new Set<string>();
   activePathLabels: string[] = [];
+  hoveredArtistInfo?: WikidataArtistHoverInfo;
+  hoveredArtistName?: string;
+
+  hoverX = 0;
+  hoverY = 0;
 
   selectedTrack?: Track;
 
@@ -47,7 +55,6 @@ export class GraphComponent implements AfterViewInit {
             this.container.nativeElement, {
                 defaultDrawNodeLabel: (context, data, settings) => {
                     const nodeType = this.graph!.getNodeAttribute(data['key'], 'nodeType');
-                    console.log('Node type:', nodeType);
 
                     if (!data.label) {
                         return;
@@ -74,9 +81,45 @@ export class GraphComponent implements AfterViewInit {
             }
             );
 
-            this.setupZoomLabels(this.graph, tracks);
-            this.setupNodeClick(tracks);
+        this.setupZoomLabels(this.graph, tracks);
+        this.setupNodeClick(tracks);
+
+        this.sigma.on('enterNode', ({ node, event }) => {
+            const nodeType = this.graph!.getNodeAttribute(
+                node,
+                'nodeType'
+            );
+
+            if (nodeType === 'artist') {
+                this.hoverTimeout = setTimeout(() => {
+                    this.loadArtistHoverInfo(node);
+                }, 500);
+            }
+
+            this.hoverX = event.x;
+            this.hoverY = event.y;
+
+            this.hoveredArtistName =
+                this.graph!.getNodeAttribute(node, 'label');
+
+            this.hoverTimeout = setTimeout(() => {
+                this.loadArtistHoverInfo(node);
+            }, 500)
+
         });
+
+        this.sigma.on('leaveNode', () => {
+            if (this.hoverTimeout) {
+                clearTimeout(this.hoverTimeout);
+                this.hoverTimeout = undefined;
+            }
+
+            this.hoveredArtistInfo = undefined;
+            this.hoveredArtistName = undefined;
+
+            this.cdr.detectChanges();
+        });
+            });
     }
 
     // Sets up zoom labels based on the camera's zoom ratio
@@ -205,14 +248,11 @@ export class GraphComponent implements AfterViewInit {
     ): void {
         this.musicbrainzApiService
             .getArtist(selectedTrack.artists)
-            .subscribe(artist => {
-                console.log('MusicBrainz artist data:', artist);
-                console.log('MBID:', artist.id);
+            .subscribe(artist => {               
 
                 this.musicbrainzApiService
                     .getArtistRelations(artist.id)
-                    .subscribe(relations => {
-                        console.log('Artist relations:', relations);
+                    .subscribe(relations => {                       
 
                         this.addMemberRelationsToGraph(relations, sourceNode);
                     });
@@ -232,12 +272,22 @@ export class GraphComponent implements AfterViewInit {
         this.musicbrainzApiService
             .getArtistRelations(artistId)
             .subscribe(relations => {
-                console.log('Clicked artist relations:', relations);
-
+                
                 this.addRelationsToBandMember(
                     relations, 
                     artistId, 
                     parentNodeId);
+            });
+    }
+
+    private loadArtistHoverInfo(
+        wikidataId: string
+    ): void {
+        this.musicbrainzApiService
+            .getWikidataArtistHoverInfo(wikidataId)
+            .subscribe(info => {
+                this.hoveredArtistInfo = info;
+                this.cdr.detectChanges();
             });
     }
 
