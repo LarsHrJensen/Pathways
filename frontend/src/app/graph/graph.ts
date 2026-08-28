@@ -1,10 +1,12 @@
 import { Component, AfterViewInit, ViewChild, ElementRef } from '@angular/core';
 import Sigma from 'sigma';
+import { MouseCoords, NodeDisplayData, PartialButFor, Settings } from 'sigma/types';
 import { GraphService } from '../shared/services/graph.service';
 import { PlaylistService } from '../shared/services/playlist.service';
 import { Track } from '../shared/models/track';
 import { ChangeDetectorRef } from '@angular/core';
 import Graph from 'graphology';
+import { Attributes } from 'graphology-types';
 import { MusicBrainzApiService } from '../shared/services/musicbrainz-api.service';
 import { ArtistRelation } from '../shared/models/artist-relation';
 import { setAlternateWeakRefImpl } from '@angular/core/primitives/signals';
@@ -53,8 +55,31 @@ export class GraphComponent implements AfterViewInit {
             this.sigma = new Sigma(
             this.graph,
             this.container.nativeElement, {
-                defaultDrawNodeLabel: (context, data, settings) => {
-                    const nodeType = this.graph!.getNodeAttribute(data['key'], 'nodeType');
+                    defaultDrawNodeLabel: (context, data, settings) => {
+                        this.drawNodeLabel(context, data, settings);
+                    }
+                }
+            );
+
+            this.setupZoomLabels(this.graph, tracks);
+            this.setupNodeClick(tracks);
+
+            this.sigma.on('enterNode', ({ node, event }) => {
+                this.handleEnterNodeHover(node, event);
+            });
+
+            this.sigma.on('leaveNode', () => {
+                this.handleLeaveNodeHover();
+            });
+        });
+    }
+
+    private drawNodeLabel(
+        context: CanvasRenderingContext2D,
+        data: PartialButFor<NodeDisplayData, "label" | "color" | "size" | "x" | "y">,
+        settings: Settings<Attributes, Attributes, Attributes>
+    ): void{
+        const nodeType = this.graph!.getNodeAttribute(data['key'], 'nodeType');
 
                     if (!data.label) {
                         return;
@@ -77,39 +102,32 @@ export class GraphComponent implements AfterViewInit {
                             data.y + 3
                         );
                     }
-                }
-            }
-            );
+    }
 
-        this.setupZoomLabels(this.graph, tracks);
-        this.setupNodeClick(tracks);
+    private handleEnterNodeHover(node: string, event: MouseCoords): void{
+        const nodeType = this.graph!.getNodeAttribute(
+            node,
+            'nodeType'
+        );
 
-        this.sigma.on('enterNode', ({ node, event }) => {
-            const nodeType = this.graph!.getNodeAttribute(
-                node,
-                'nodeType'
-            );
-
-            if (nodeType === 'artist') {
-                this.hoverTimeout = setTimeout(() => {
-                    this.loadArtistHoverInfo(node);
-                }, 500);
-            }
+          if (nodeType !== 'artist'){
+            console.log('NodeType is not an artist', nodeType)
+            return;
+          }
 
             this.hoverX = event.x;
             this.hoverY = event.y;
 
             this.hoveredArtistName =
                 this.graph!.getNodeAttribute(node, 'label');
-
+            
             this.hoverTimeout = setTimeout(() => {
                 this.loadArtistHoverInfo(node);
-            }, 500)
+            }, 500);
+    }
 
-        });
-
-        this.sigma.on('leaveNode', () => {
-            if (this.hoverTimeout) {
+    private handleLeaveNodeHover(): void{
+        if (this.hoverTimeout) {
                 clearTimeout(this.hoverTimeout);
                 this.hoverTimeout = undefined;
             }
@@ -118,8 +136,6 @@ export class GraphComponent implements AfterViewInit {
             this.hoveredArtistName = undefined;
 
             this.cdr.detectChanges();
-        });
-            });
     }
 
     // Sets up zoom labels based on the camera's zoom ratio
@@ -281,7 +297,7 @@ export class GraphComponent implements AfterViewInit {
     }
 
     private loadArtistHoverInfo(
-        wikidataId: string
+        wikidataId: string //Actually recieves an MBID, but backend resolves it to a wikiDataId
     ): void {
         this.musicbrainzApiService
             .getWikidataArtistHoverInfo(wikidataId)
