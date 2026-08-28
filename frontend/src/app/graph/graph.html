@@ -33,16 +33,20 @@
 
     <div>{{ hoveredArtistInfo.lifeSpan }}</div>
 
-    <div>
-      {{ hoveredArtistInfo.occupations.slice(0, 3).join(' · ') }}
+    <div><strong>Roles</strong>
+     <div> {{ hoveredArtistInfo.occupations.slice(0, 3).join(' · ') }} </div>
     </div>
 
-    <div>
-      {{ hoveredArtistInfo.genres.join(' · ') }}
+    <div><strong>Genres</strong>
+     <div> {{ hoveredArtistInfo.genres.join(' · ') }} </div>
     </div>
 
-    <div>
-      {{ hoveredArtistInfo.bands.join(' · ') }}
+    <div><strong>Associated acts</strong>
+     <div> {{ hoveredArtistInfo.bands.join(' · ') }} </div>
+    </div>
+
+    <div><strong>Origin</strong>
+     <div> {{ hoveredArtistInfo.origin }} </div>
     </div>
   </div>
 }

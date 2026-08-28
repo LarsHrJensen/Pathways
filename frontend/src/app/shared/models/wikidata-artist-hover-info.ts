@@ -3,4 +3,5 @@ export interface WikidataArtistHoverInfo {
     occupations: string[];
     genres: string[];
     bands: string[]; 
+    origin: string[];
 }

@@ -1,6 +1,7 @@
 import { Component, AfterViewInit, ViewChild, ElementRef } from '@angular/core';
 import Sigma from 'sigma';
-import { MouseCoords, NodeDisplayData, PartialButFor, Settings } from 'sigma/types';
+import { MouseCoords, NodeDisplayData, PartialButFor } from 'sigma/types';
+import { Settings } from 'sigma/settings';
 import { GraphService } from '../shared/services/graph.service';
 import { PlaylistService } from '../shared/services/playlist.service';
 import { Track } from '../shared/models/track';
@@ -9,7 +10,6 @@ import Graph from 'graphology';
 import { Attributes } from 'graphology-types';
 import { MusicBrainzApiService } from '../shared/services/musicbrainz-api.service';
 import { ArtistRelation } from '../shared/models/artist-relation';
-import { setAlternateWeakRefImpl } from '@angular/core/primitives/signals';
 import { WikidataArtistHoverInfo } from '../shared/models/wikidata-artist-hover-info';
 
 @Component({
@@ -74,6 +74,7 @@ export class GraphComponent implements AfterViewInit {
         });
     }
 
+    // Places label up center for tracks from playlist and up right for relation nodes
     private drawNodeLabel(
         context: CanvasRenderingContext2D,
         data: PartialButFor<NodeDisplayData, "label" | "color" | "size" | "x" | "y">,
@@ -302,6 +303,8 @@ export class GraphComponent implements AfterViewInit {
         this.musicbrainzApiService
             .getWikidataArtistHoverInfo(wikidataId)
             .subscribe(info => {
+                console.log('Hover info:', info);
+
                 this.hoveredArtistInfo = info;
                 this.cdr.detectChanges();
             });

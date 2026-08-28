@@ -48,6 +48,11 @@ public class WikidataService
         var bandIds = await FilterBandsFromMemberOfAsync(memberOfIds);
         var bands = await GetEntityLabelsAsync(bandIds);
 
+        var originIds = GetEntityIds(claims, "P27");
+        var origins = await GetEntityLabelsAsync(originIds);
+
+        var origin = origins.FirstOrDefault() ?? "";
+
         //Console.WriteLine(json);
 
         return new WikidataArtistHoverInfoDto
@@ -55,7 +60,8 @@ public class WikidataService
             LifeSpan = lifeSpan,
             Occupations = occupations,
             Genres = genres,
-            Bands = bands
+            Bands = bands,
+            Origin = origin
         };
 
     }
