@@ -112,8 +112,19 @@ export class GraphComponent implements AfterViewInit {
         );
 
           if (nodeType !== 'artist'){
-            console.log('NodeType is not an artist', nodeType)
             return;
+          }
+        
+          const artistType = this.graph!.getNodeAttribute(
+            node,
+            'artistType'
+          );
+
+          if (artistType === 'Person'){
+            console.log('Node is person', artistType)
+          }
+          if (artistType === 'Group'){
+            console.log('Node is group', artistType)
           }
 
             this.hoverX = event.x;
@@ -124,7 +135,7 @@ export class GraphComponent implements AfterViewInit {
             
             this.hoverTimeout = setTimeout(() => {
                 this.loadArtistHoverInfo(node);
-            }, 500);
+            }, 300);
     }
 
     private handleLeaveNodeHover(): void{
@@ -213,6 +224,7 @@ export class GraphComponent implements AfterViewInit {
                 sourceNode,
                 relation.artistId,
                 relation.artistName,
+                relation.artistType,
                 index,
                 memberRelations.length
             );
@@ -246,6 +258,7 @@ export class GraphComponent implements AfterViewInit {
                 sourceNode,
                 relation.artistId,
                 relation.artistName,
+                relation.artistType,
                 index,
                 relations.length,
                 directionAngle

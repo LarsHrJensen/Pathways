@@ -1,10 +1,6 @@
-using System.Net.Http;
-using System.Threading.Tasks;
 using System.Text.Json;
 using backend.Models;
-using System.Reflection.Metadata;
-using Microsoft.AspNetCore.Http.HttpResults;
-using System.Security.Claims;
+
 
 namespace backend.Services;
 
@@ -60,12 +56,14 @@ public class MusicBrainzService
             var artistId = relation.GetProperty("artist").GetProperty("id").GetString();
             var artistName = relation.GetProperty("artist").GetProperty("name").GetString();
             var relationType = relation.GetProperty("type").GetString();
+            var artistType = relation.GetProperty("artist").GetProperty("type").GetString();
 
             result.Add(new ArtistRelation
             {
-                ArtistId = artistId!,
-                ArtistName = artistName!,
-                RelationType = relationType!
+                ArtistId = artistId,
+                ArtistName = artistName,
+                RelationType = relationType,
+                ArtistType = artistType
             });
         }
 
@@ -143,8 +141,6 @@ public class MusicBrainzService
         }
 
         return null;
-    }   
-
-    
+    }     
 
 }
