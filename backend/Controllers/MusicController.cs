@@ -71,4 +71,20 @@ public class MusicController : ControllerBase
         return Ok(result);
     }
 
+    [HttpGet("grouphover/{mbid}")]
+    public async Task<IActionResult> GetWikidataGroupHoverFromMbid(string mbid)
+    {
+        var wikidataId = await _musicBrainzService.GetWikidataIdAsync(mbid);
+
+        if (wikidataId is null)
+        {
+            return NotFound();
+        }
+
+        var result =
+            await _wikidataService.GetWikidataGroupHoverInfoAsync(wikidataId);
+
+        return Ok(result);
+    }
+
 }

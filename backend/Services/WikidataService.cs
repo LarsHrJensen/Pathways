@@ -86,9 +86,12 @@ public class WikidataService
             return null;
         }
 
-        return DateTime.Parse(
-            dateString.TrimStart('+')
-        ).Year;
+        var yearString = dateString
+            .TrimStart('+')
+            .Split('-')[0];
+
+        return int.TryParse(yearString, out var year)
+            ? year: null;
     }
 
     //Helper to retrieve occupation Id's
@@ -214,6 +217,89 @@ public class WikidataService
         }
         
         return bandsIds;
+    }
+
+    public async Task<WikidataGroupHoverInfoDto> GetWikidataGroupHoverInfoAsync(string wikidataId)
+    {
+        var url =
+            $"https://www.wikidata.org/wiki/Special:EntityData/{wikidataId}.json";
+
+        var json = await _httpClient.GetStringAsync(url);
+
+        using var document = JsonDocument.Parse(json);
+
+        var claims = document.RootElement
+            .GetProperty("entities")
+            .GetProperty(wikidataId)
+            .GetProperty("claims");
+
+        var genreIds = GetEntityIds(claims, "P136");
+        var genres = await GetEntityLabelsAsync(genreIds);
+
+        var startYear = GetYearClaim(claims, "P571");
+        var endYear = GetYearClaim(claims, "P2032");
+        var activeyears = endYear is null
+            ? $"{startYear}-"
+            : $"{startYear}-{endYear}";
+
+        var originIds = GetEntityIds(claims, "P740");
+        var origins = await GetEntityLabelsAsync(originIds);
+        var origin = origins.FirstOrDefault();
+
+        var (memberIds, formerMemberIds) = GetGroupMemberIds(claims);
+        var members = await GetEntityLabelsAsync(memberIds);
+        var formerMembers = await GetEntityLabelsAsync(formerMemberIds);
+
+        return new WikidataGroupHoverInfoDto
+        {
+            ActiveYears = activeyears,
+            Genres = genres,
+            Members = members,
+            FormerMembers = formerMembers,
+            Origin = origin
+        };
+    }
+
+    //Helper to distinguish past members from active members, as they have different claims
+    private (List<string> currentIds, List<string> formerIds) GetGroupMemberIds(JsonElement claims) //a tuple!
+    {
+        var currentIds = new List<string>();
+        var formerIds = new List<string>();
+
+        if (!claims.TryGetProperty("P527", out var memberClaims))
+        {
+            return (currentIds, formerIds);
+        }
+
+        foreach (var claim in memberClaims.EnumerateArray())
+        {
+            var id = claim  
+                .GetProperty("mainsnak")
+                .GetProperty("datavalue")
+                .GetProperty("value")
+                .GetProperty("id")
+                .GetString();
+            
+            if (id is null)
+            {
+                continue;
+            }
+
+            var isFormerMember =
+                claim.TryGetProperty("qualifiers", out var qualifiers)
+                && qualifiers.TryGetProperty("P582", out _);
+
+            if (isFormerMember)
+            {
+                formerIds.Add(id);
+            }
+            else
+            {
+                currentIds.Add(id);
+            }
+        }
+
+        return (currentIds, formerIds);
     }
     
 }
