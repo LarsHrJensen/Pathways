@@ -57,6 +57,7 @@ export class GraphService {
     sourceNodeId: string,
     artistId: string,
     artistName: string,
+    artistType: string,
     index: number,
     total: number,
     directionAngle?: number
@@ -95,6 +96,7 @@ export class GraphService {
       y: y,
       size: 4,
       nodeType: 'artist',
+      artistType: artistType,
       parentNodeId: sourceNodeId,
       expanded: false,
       relationLoaded: false

@@ -1,7 +1,6 @@
-using System.Net.Http;
-using System.Threading.Tasks;
 using System.Text.Json;
 using backend.Models;
+
 
 namespace backend.Services;
 
@@ -52,24 +51,26 @@ public class MusicBrainzService
 
         var relations = document.RootElement.GetProperty("relations");
 
-        foreach (var relation in relations.EnumerateArray())
+       foreach (var relation in relations.EnumerateArray())
         {
             var artistId = relation.GetProperty("artist").GetProperty("id").GetString();
             var artistName = relation.GetProperty("artist").GetProperty("name").GetString();
             var relationType = relation.GetProperty("type").GetString();
+            var artistType = relation.GetProperty("artist").GetProperty("type").GetString();
 
             result.Add(new ArtistRelation
             {
-                ArtistId = artistId!,
-                ArtistName = artistName!,
-                RelationType = relationType!
+                ArtistId = artistId,
+                ArtistName = artistName,
+                RelationType = relationType,
+                ArtistType = artistType
             });
         }
 
         return result
             .GroupBy(r => new { r.ArtistId, r.RelationType})
             .Select(g => g.First())
-            .ToList();
+            .ToList(); 
     }
 
     public async Task<List<Relation>> GetReleaseRelationsAsync(string mbid)
@@ -104,5 +105,42 @@ public class MusicBrainzService
 
         return result;
     }
+
+        public async Task<string?> GetWikidataIdAsync(string mbid)
+    {
+        var url =
+            $"https://musicbrainz.org/ws/2/artist/{mbid}?inc=url-rels&fmt=json";
+
+        var json = await _httpClient.GetStringAsync(url);
+
+        using var document = JsonDocument.Parse(json);
+
+        if (!document.RootElement.TryGetProperty(
+            "relations",
+            out var relations))
+        {
+            return null;
+        }
+
+        foreach (var relation in relations.EnumerateArray())
+        {
+            if (!relation.TryGetProperty("url", out var urlObject))
+            {
+                continue;
+            }
+
+            var resource = urlObject
+                .GetProperty("resource")
+                .GetString();
+
+            if (resource is not null &&
+                resource.Contains("wikidata.org/wiki/"))
+            {
+                return resource.Split('/').Last();
+            }
+        }
+
+        return null;
+    }     
 
 }
