@@ -1,12 +1,27 @@
-<h1>Pathways</h1>
-<h2>Music discovery and visualization platform</h2>
+<div class="hero">
 
-<p>
-  Broaden your musical horizons by making landscapes of your playlists.
-</p>
+  <div class="hero-text">
+    <h1>Pathways</h1>
 
-<app-upload></app-upload>
+    <h2>Music discovery and visualization platform</h2>
 
-<a routerLink="/playlist">Playlist</a>
+      Broaden your musical horizons by making landscapes of your playlists.
+    
+  </div>
+
+  <div class="search-container">
+
+    <app-search></app-search>
+
+  </div>
+
+  <div class="upload-container">
+    
+    <app-upload></app-upload>
+    <a routerLink="/playlist">View your playlist</a>
+
+  </div>
+
+</div>
 
 <app-graph></app-graph>
