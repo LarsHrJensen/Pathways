@@ -48,7 +48,39 @@
     <div><strong>Origin</strong>
      <div> {{ hoveredArtistInfo.origin }} </div>
     </div>
-    
+  </div>
+  
+}
+
+@if (hoveredGroupInfo) {
+  <div
+    class="artist-hover"
+    [style.left.px]="hoverX + 15"
+    [style.top.px]="hoverY + 15"
+  >
+    <strong>{{ hoveredArtistName }}</strong>
+
+    <div>{{ hoveredGroupInfo.activeYears }}</div>
+
+    <div>
+      <strong>Genres</strong>
+      <div>{{ hoveredGroupInfo.genres.join(' · ') }}</div>
+    </div>
+
+    <div>
+      <strong>Members</strong>
+      <div>{{ hoveredGroupInfo.members.join(' · ') }}</div>
+    </div>
+
+    <div>
+      <strong>Former members</strong>
+      <div>{{ hoveredGroupInfo.formerMembers.join(' · ') }}</div>
+    </div>
+
+    <div>
+      <strong>Origin</strong>
+      <div>{{ hoveredGroupInfo.origin }}</div>
+    </div>
   </div>
 }
 </div>

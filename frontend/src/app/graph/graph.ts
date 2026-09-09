@@ -11,6 +11,7 @@ import { Attributes } from 'graphology-types';
 import { MusicBrainzApiService } from '../shared/services/musicbrainz-api.service';
 import { ArtistRelation } from '../shared/models/artist-relation';
 import { WikidataArtistHoverInfo } from '../shared/models/wikidata-artist-hover-info';
+import { WikidataGroupHoverInfo } from '../shared/models/wikidata-group-hover-info';
 
 @Component({
   selector: 'app-graph',
@@ -30,6 +31,7 @@ export class GraphComponent implements AfterViewInit {
   activePathLabels: string[] = [];
   hoveredArtistInfo?: WikidataArtistHoverInfo;
   hoveredArtistName?: string;
+  hoveredGroupInfo?: WikidataGroupHoverInfo;
 
   hoverX = 0;
   hoverY = 0;
@@ -121,10 +123,15 @@ export class GraphComponent implements AfterViewInit {
           );
 
           if (artistType === 'Person'){
-            console.log('Node is person', artistType)
-          }
-          if (artistType === 'Group'){
-            console.log('Node is group', artistType)
+            this.hoverTimeout = setTimeout(() => {
+                this.loadArtistHoverInfo(node);
+            }, 300);
+
+          } else if (artistType === 'Group'){
+            this.hoverTimeout = setTimeout(() => {
+                this.loadGroupHoverInfo(node);
+            }, 300);
+          
           }
 
             this.hoverX = event.x;
@@ -133,9 +140,7 @@ export class GraphComponent implements AfterViewInit {
             this.hoveredArtistName =
                 this.graph!.getNodeAttribute(node, 'label');
             
-            this.hoverTimeout = setTimeout(() => {
-                this.loadArtistHoverInfo(node);
-            }, 300);
+            
     }
 
     private handleLeaveNodeHover(): void{
@@ -319,6 +324,19 @@ export class GraphComponent implements AfterViewInit {
                 console.log('Hover info:', info);
 
                 this.hoveredArtistInfo = info;
+                this.cdr.detectChanges();
+            });
+    }
+
+    private loadGroupHoverInfo(
+        wikidataId: string
+    ): void {
+        this.musicbrainzApiService
+            .getWikidataGroupHoverInfo(wikidataId)
+            .subscribe(info => {
+                console.log('Group hover info: ', info)
+
+                this.hoveredGroupInfo = info;
                 this.cdr.detectChanges();
             });
     }

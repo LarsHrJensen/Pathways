@@ -4,6 +4,7 @@ import { Observable } from 'rxjs';
 import { MusicBrainzArtist } from '../models/musicbrainz-artist';
 import { ArtistRelation } from '../models/artist-relation';
 import { WikidataArtistHoverInfo } from '../models/wikidata-artist-hover-info'
+import { WikidataGroupHoverInfo } from '../models/wikidata-group-hover-info';
 
 @Injectable({
     providedIn: 'root'
@@ -28,6 +29,12 @@ export class MusicBrainzApiService {
     getWikidataArtistHoverInfo(wikidataId: string){
         return this.http.get<WikidataArtistHoverInfo>(
             `${this.apiUrl}/hover/${wikidataId}`
+        );
+    }
+
+    getWikidataGroupHoverInfo(wikidataId: string){
+        return this.http.get<WikidataGroupHoverInfo>(
+            `${this.apiUrl}/grouphover/${wikidataId}`
         );
     }
 }
