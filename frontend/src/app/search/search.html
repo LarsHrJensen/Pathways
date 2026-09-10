@@ -1,5 +1,13 @@
 <div class="search-container">
     <input
       type="search"
+      [(ngModel)]="searchTerm"
+      (ngModelChange)="search($event)"
       placeholder="Search artists, bands, producers, album, etc...">
+
+    <div class="search-results">
+      @for (artist of searchResults; track artist.id) {
+        <p>{{ artist.name }} - {{ artist.type }}</p>
+      }
+    </div>
 </div>

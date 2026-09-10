@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using backend.Services;
-using System.Threading.Tasks;
-using backend.DTOs;
+
 
 namespace backend.Controllers;
 
@@ -83,6 +82,14 @@ public class MusicController : ControllerBase
 
         var result =
             await _wikidataService.GetWikidataGroupHoverInfoAsync(wikidataId);
+
+        return Ok(result);
+    }
+
+    [HttpGet("search/{query}")]
+    public async Task<IActionResult> GetSearchResult(string query)
+    {
+        var result = await _musicBrainzService.GetSearchResultAsync(query);
 
         return Ok(result);
     }

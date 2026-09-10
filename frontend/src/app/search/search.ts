@@ -1,5 +1,8 @@
 import { Component } from "@angular/core";
 import { FormsModule } from "@angular/forms" 
+import { SearchResult } from "../shared/models/search";
+import { MusicBrainzApiService } from "../shared/services/musicbrainz-api.service";
+import { ChangeDetectorRef } from "@angular/core";
 
 @Component({
     selector: 'app-search',
@@ -8,13 +11,33 @@ import { FormsModule } from "@angular/forms"
     styleUrl: './search.css'
 })
 export class Search{
-    artists = [
-    { id: 1, name: 'Brian Eno', type: 'Person' },
-    { id: 2, name: 'David Bowie', type: 'Person' },
-    { id: 3, name: 'Roxy Music', type: 'Band' },
-    { id: 4, name: 'Nirvana', type: 'Band' },
-    { id: 5, name: 'Steve Albini', type: 'Person' }
-  ];
+    
+  constructor(
+    private musicbrainzApiService: MusicBrainzApiService,
+    private cdr: ChangeDetectorRef
+  ) {}
 
   searchTerm: string = '';
+  searchResults: SearchResult[] = [];
+
+  search(query: string): void{
+     query = query.trim();
+
+    if (!query) {
+      this.searchResults = [];
+      return
+    }
+
+    this.musicbrainzApiService
+    .getSearchResult(this.searchTerm)
+    .subscribe(results => {
+
+      if (this.searchTerm.trim() === query) {
+        this.searchResults = results;
+        this.cdr.detectChanges(); //TODO: Temporary workaround. Why doesn't httpclient response trigger change detection automatically
+      }
+      
+    });
+
+  }
 }
