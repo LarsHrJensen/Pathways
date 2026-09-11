@@ -146,88 +146,32 @@ public class MusicBrainzService
 
     public async Task<List<SearchResult>> GetSearchResultAsync(string query)
     {
-        var searchResults = new List<SearchResult>
+        var url = $"https://musicbrainz.org/ws/2/artist/?query={query}&fmt=json&limit=5";
+
+        var json = await _httpClient.GetStringAsync(url);
+
+        using var document = JsonDocument.Parse(json);
+
+        var artists = document.RootElement.GetProperty("artists");
+
+        var searchResults = new List<SearchResult>();
+
+        foreach (var artist in artists.EnumerateArray())
         {
-            new SearchResult
-            {
-                Id = "1",
-                Name = "Brian Eno",
-                Type = "Person"
-            },
-            new SearchResult
-            {
-                Id = "2",
-                Name = "David Bowie",
-                Type = "Person"
-            },
-            new SearchResult
-            {
-                Id = "3",
-                Name = "Roxy Music",
-                Type = "Band"
-            },
-            new SearchResult
-            {
-                Id = "4",
-                Name = "Nirvana",
-                Type = "Band"
-            },
-            new SearchResult
-            {
-                Id = "5",
-                Name = "Steve Albini",
-                Type = "Person"
-            },
-            new SearchResult
-            {
-                Id = "6",
-                Name = "Talking Heads",
-                Type = "Band"
-            },
-            new SearchResult
-            {
-                Id = "7",
-                Name = "David Byrne",
-                Type = "Person"
-            },
-            new SearchResult
-            {
-                Id = "8",
-                Name = "Another Green World",
-                Type = "Album"
-            },
-            new SearchResult
-            {
-                Id = "9",
-                Name = "Low",
-                Type = "Album"
-            },
-            new SearchResult
-            {
-                Id = "10",
-                Name = "Low",
-                Type = "Band"
-            },
-            new SearchResult
-            {
-                Id = "11",
-                Name = "Nevermind",
-                Type = "Album"
-            },
-            new SearchResult
-            {
-                Id = "12",
-                Name = "Nevermind",
-                Type = "Tribute"
-            }
-        };
+            var artistId = artist.GetProperty("id").GetString();
+            var artistName = artist.GetProperty("name").GetString();
+            var artistType = artist.GetProperty("type").GetString();
 
-        var filteredResults = searchResults
-            .Where(result => 
-                result.Name.Contains(query, StringComparison.OrdinalIgnoreCase))
-            .ToList();
+            searchResults.Add(new SearchResult
+            {
+                Id = artistId,
+                Name = artistName,
+                Type = artistType
 
-        return filteredResults;
+            });
+        }
+
+        return searchResults;
     }
 
 }

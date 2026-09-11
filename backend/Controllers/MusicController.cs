@@ -89,9 +89,18 @@ public class MusicController : ControllerBase
     [HttpGet("search/{query}")]
     public async Task<IActionResult> GetSearchResult(string query)
     {
-        var result = await _musicBrainzService.GetSearchResultAsync(query);
-
-        return Ok(result);
+        try
+        {
+            var result = await _musicBrainzService.GetSearchResultAsync(query);
+            return Ok(result);
+        }
+        catch (HttpRequestException)
+        {
+            return StatusCode(
+                StatusCodes.Status503ServiceUnavailable,
+                "Music search is temporarily unavailable."
+            );
+        }
     }
 
 }
