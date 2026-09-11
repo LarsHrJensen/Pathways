@@ -1,4 +1,11 @@
-import { Component, AfterViewInit, ViewChild, ElementRef } from '@angular/core';
+import { 
+    Component, 
+    AfterViewInit, 
+    ViewChild, 
+    ElementRef,
+    Input,
+    SimpleChanges
+} from '@angular/core';
 import Sigma from 'sigma';
 import { MouseCoords, NodeDisplayData, PartialButFor } from 'sigma/types';
 import { Settings } from 'sigma/settings';
@@ -12,6 +19,7 @@ import { MusicBrainzApiService } from '../shared/services/musicbrainz-api.servic
 import { ArtistRelation } from '../shared/models/artist-relation';
 import { WikidataArtistHoverInfo } from '../shared/models/wikidata-artist-hover-info';
 import { WikidataGroupHoverInfo } from '../shared/models/wikidata-group-hover-info';
+import { SearchResult } from '../shared/models/search';
 
 @Component({
   selector: 'app-graph',
@@ -20,6 +28,8 @@ import { WikidataGroupHoverInfo } from '../shared/models/wikidata-group-hover-in
   styleUrl: './graph.css',
 })
 export class GraphComponent implements AfterViewInit {
+
+  @Input() selectedResult: SearchResult | null = null;
 
   @ViewChild('container')
   container!: ElementRef;
@@ -74,6 +84,12 @@ export class GraphComponent implements AfterViewInit {
                 this.handleLeaveNodeHover();
             });
         });
+    }
+
+    ngOnChanges(changes: SimpleChanges): void {
+        if (changes['selectedResult'] && this.selectedResult) {
+            this.addSearchResultToGraph(this.selectedResult);
+        }
     }
 
     // Places label up center for tracks from playlist and up right for relation nodes
@@ -275,6 +291,10 @@ export class GraphComponent implements AfterViewInit {
                 relation.artistId
             );
         })
+    }
+
+    private addSearchResultToGraph(result: SearchResult): void {
+        console.log('Will add node: ', result.id, result.name, result.type);
     }
 
     private loadArtistRelations(

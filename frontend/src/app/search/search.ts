@@ -1,8 +1,13 @@
-import { Component, OnInit } from "@angular/core";
+import { 
+  Component, 
+  OnInit, 
+  Output, 
+  EventEmitter, 
+  ChangeDetectorRef 
+} from "@angular/core";
 import { FormsModule } from "@angular/forms" 
 import { SearchResult } from "../shared/models/search";
 import { MusicBrainzApiService } from "../shared/services/musicbrainz-api.service";
-import { ChangeDetectorRef } from "@angular/core";
 import { Subject } from "rxjs";
 import { debounceTime, switchMap } from "rxjs";
 
@@ -13,7 +18,9 @@ import { debounceTime, switchMap } from "rxjs";
     styleUrl: './search.css'
 })
 export class Search implements OnInit{
-    
+  
+  @Output() resultSelected = new EventEmitter<SearchResult>();
+
   constructor(
     private musicbrainzApiService: MusicBrainzApiService,
     private cdr: ChangeDetectorRef
@@ -57,5 +64,11 @@ export class Search implements OnInit{
     }
 
     this.searchSubject.next(trimmedQuery);
+  }
+
+  selectResult(result: SearchResult): void {
+    this.resultSelected.emit(result);
+    console.log('Selected search result: ', result);
+    
   }
 }

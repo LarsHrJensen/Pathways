@@ -11,7 +11,9 @@
 
   <div class="search-container">
 
-    <app-search></app-search>
+    <app-search
+      (resultSelected)="onResultSelected($event)">
+    </app-search>
 
   </div>
 
@@ -24,4 +26,6 @@
 
 </div>
 
-<app-graph></app-graph>
+<app-graph
+  [selectedResult]="selectedResult">
+</app-graph>

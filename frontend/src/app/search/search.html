@@ -7,7 +7,9 @@
 
     <div class="search-results">
       @for (artist of searchResults; track artist.id) {
-        <p>{{ artist.name }} - {{ artist.type }}</p>
+        <p (click)="selectResult(artist)">
+          {{ artist.name }} - {{ artist.type }}
+        </p>
       }
     </div>
 </div>
