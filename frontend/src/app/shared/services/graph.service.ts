@@ -7,11 +7,21 @@ import { Track } from '../models/track';
 })
 export class GraphService {
 
+  createEmptyGraph(): Graph {
+    return new Graph();
+  }
+
   // Creates a graph using valence and energy as node coordinates
   createGraph(tracks: Track[]): Graph {
+    const graph = this.createEmptyGraph();
 
-    const graph = new Graph();
+    this.addTracksToGraph(graph, tracks);
 
+    return graph;
+  }
+
+  //When adding tracks from imported playlists
+  addTracksToGraph(graph : Graph, tracks: Track []): void {
     tracks.forEach((track) => {
 
       const red = Math.round(track.valence * 255);
@@ -48,8 +58,6 @@ export class GraphService {
         );
       }
     });
-
-    return graph;
   }
 
   addArtistNode(

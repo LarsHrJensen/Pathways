@@ -64,25 +64,30 @@ export class GraphComponent implements AfterViewInit {
 
             this.graph = this.graphService.createGraph(tracks);
 
-            this.sigma = new Sigma(
-            this.graph,
+            this.initializeSigma(this.graph);
+
+            this.setupZoomLabels(this.graph, tracks);
+            this.setupNodeClick(tracks);
+
+        });
+    }
+
+    private initializeSigma(graph: Graph): void {
+        this.sigma = new Sigma(
+            graph,
             this.container.nativeElement, {
                     defaultDrawNodeLabel: (context, data, settings) => {
                         this.drawNodeLabel(context, data, settings);
                     }
                 }
             );
-
-            this.setupZoomLabels(this.graph, tracks);
-            this.setupNodeClick(tracks);
-
-            this.sigma.on('enterNode', ({ node, event }) => {
+        
+        this.sigma.on('enterNode', ({ node, event }) => {
                 this.handleEnterNodeHover(node, event);
             });
 
-            this.sigma.on('leaveNode', () => {
-                this.handleLeaveNodeHover();
-            });
+        this.sigma.on('leaveNode', () => {
+            this.handleLeaveNodeHover();
         });
     }
 
@@ -91,6 +96,7 @@ export class GraphComponent implements AfterViewInit {
             this.addSearchResultToGraph(this.selectedResult);
         }
     }
+
 
     // Places label up center for tracks from playlist and up right for relation nodes
     private drawNodeLabel(
@@ -155,8 +161,7 @@ export class GraphComponent implements AfterViewInit {
 
             this.hoveredArtistName =
                 this.graph!.getNodeAttribute(node, 'label');
-            
-            
+             
     }
 
     private handleLeaveNodeHover(): void{
@@ -293,8 +298,27 @@ export class GraphComponent implements AfterViewInit {
         })
     }
 
-    private addSearchResultToGraph(result: SearchResult): void {
-        console.log('Will add node: ', result.id, result.name, result.type);
+    private addSearchResultToGraph(results: SearchResult): void {
+        if (!this.graph) {
+            this.graph = this.graphService.createEmptyGraph();
+            this.initializeSigma(this.graph);
+        }
+        console.log('Graph', this.graph);
+        console.log('Will add node: ', results.id, results.name, results.type);
+
+        this.graph.addNode(
+            results.id,{
+                label: results.name,
+                x: 0,
+                y: 0,
+                size: 5,
+                nodeType: 'artist',
+                artistType: results.type,
+                expanded: false,
+                relationLoaded: false
+            }
+        );
+     
     }
 
     private loadArtistRelations(
