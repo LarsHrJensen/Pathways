@@ -1,4 +1,6 @@
+using System.Runtime.CompilerServices;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using backend.Models;
 using Microsoft.OpenApi;
 
@@ -68,12 +70,195 @@ public class MusicBrainzService
             });
         }
 
+        var relationTypes = result
+            .Select(r => r.RelationType)
+            .Distinct()
+            .OrderBy(type => type);
+
+        Console.WriteLine("=== ARTIST RELATION TYPES ===");
+
+        foreach (var type in relationTypes)
+        {
+            Console.WriteLine(type);
+        }
+
         return result
             .GroupBy(r => new { r.ArtistId, r.RelationType })
             .Select(g => g.First())
             .ToList();
     }
 
+    public async Task GetArtistRecordingRelationsAsync(string mbid)
+    {
+        var url =
+            $"https://musicbrainz.org/ws/2/artist/{mbid}?inc=recording-rels&fmt=json";
+
+        var json = await _httpClient.GetStringAsync(url);
+
+        using var document = JsonDocument.Parse(json);
+
+        var relations = document.RootElement.GetProperty("relations");
+
+        Console.WriteLine("=== ARTIST -> RECORDING RELATIONS ===");
+
+        var relationTypes = relations
+            .EnumerateArray()
+            .Select(relation => relation.GetProperty("type").GetString())
+            .Where(type => type != null)
+            .GroupBy(type => type)
+            .OrderBy(group => group.Key);
+
+        foreach (var group in relationTypes)
+        {
+
+            Console.WriteLine($"{group.Key}: {group.Count()}");
+        }
+    }
+
+    public async Task GetArtistWorkRelationsAsync(string mbid)
+    {
+        var url =
+            $"https://musicbrainz.org/ws/2/artist/{mbid}?inc=work-rels&fmt=json";
+
+        var json = await _httpClient.GetStringAsync(url);
+
+        using var document = JsonDocument.Parse(json);
+
+        var relations = document.RootElement.GetProperty("relations");
+
+        var workRelations = relations
+            .EnumerateArray()
+            .Select(relation => new
+            {
+                RelationType = relation.GetProperty("type").GetString(),
+                WorkId = relation.GetProperty("work").GetProperty("id").GetString(),
+                WorkTitle = relation.GetProperty("work").GetProperty("title").GetString()
+            })
+            .GroupBy(r => new { r.WorkId, r.WorkTitle })
+            .Where(group => group.Count() > 1)
+            .Take(20);
+
+        Console.WriteLine("=== WORKS WITH MULTIPLE RELATION TYPES ===");
+
+        foreach (var group in workRelations)
+        {
+            var types = group
+                .Select(r => r.RelationType)
+                .Distinct();
+
+            Console.WriteLine(
+                $"{group.Key.WorkTitle}: {string.Join(", ", types)}"
+            );
+        }
+    }
+
+    public async Task GetArtistReleaseRelationsAsync(string mbid)
+    {
+        var url =
+            $"https://musicbrainz.org/ws/2/artist/{mbid}?inc=release-rels&fmt=json";
+            
+
+        var json = await _httpClient.GetStringAsync(url);
+
+        using var document = JsonDocument.Parse(json);
+
+        var relations = document.RootElement.GetProperty("relations");
+
+        var relationTypes = relations
+            .EnumerateArray()
+            .Select(relation => relation.GetProperty("type").GetString())
+            .Where(type => type != null)
+            .GroupBy(type => type)
+            .OrderBy(group => group.Key);
+
+        Console.WriteLine("=== ARTIST -> RELEASE RELATIONS ===");
+
+        foreach (var group in relationTypes)
+        {
+            Console.WriteLine($"{group.Key}: {group.Count()}");
+        }
+    }
+
+    public async Task GetArtistReleaseGroupRelationsAsync(string mbid)
+    {
+        var url =
+            $"https://musicbrainz.org/ws/2/artist/{mbid}?inc=release-group-rels&fmt=json";
+
+        var json = await _httpClient.GetStringAsync(url);
+
+        using var document = JsonDocument.Parse(json);
+
+        var relations = document.RootElement.GetProperty("relations");
+
+        var relationTypes = relations
+            .EnumerateArray()
+            .Select(relation => relation.GetProperty("type").GetString())
+            .Where(type => type != null)
+            .GroupBy(type => type)
+            .OrderBy(group => group.Key);
+
+        Console.WriteLine("=== ARTIST -> RELEASE GROUP RELATIONS ===");
+
+        foreach (var group in relationTypes)
+        {
+            Console.WriteLine($"{group.Key}: {group.Count()}");
+        }
+    }
+
+    public async Task SearchRecordingAsync() //for test
+    {
+        var title = "Like a Rolling Stone";
+
+        var url =
+            $"https://musicbrainz.org/ws/2/recording/?query=recording:\"{Uri.EscapeDataString(title)}\"%20AND%20artist:\"Bob%20Dylan\"&fmt=json";
+
+        var json = await _httpClient.GetStringAsync(url);
+
+        using var document = JsonDocument.Parse(json);
+
+        var recordings = document
+            .RootElement
+            .GetProperty("recordings");
+
+        Console.WriteLine("=== RECORDING SEARCH RESULTS ===");
+
+        foreach (var recording in recordings.EnumerateArray().Take(10))
+        {
+            var id = recording.GetProperty("id").GetString();
+            var recordingTitle = recording.GetProperty("title").GetString();
+
+            Console.WriteLine($"{recordingTitle} -> {id}");
+        }
+    }
+
+        public async Task TestRecordingTraversalAsync(string recordingMbid)
+    {
+        var url =
+            $"https://musicbrainz.org/ws/2/recording/{recordingMbid}?inc=artist-rels&fmt=json";
+
+        var json = await _httpClient.GetStringAsync(url);
+
+        using var document = JsonDocument.Parse(json);
+
+        var relations = document
+            .RootElement
+            .GetProperty("relations");
+
+        Console.WriteLine("=== ARTISTS ON RECORDING ===");
+
+        foreach (var relation in relations.EnumerateArray())
+        {
+            if (!relation.TryGetProperty("artist", out var artist))
+            {
+                continue;
+            }
+
+            var artistName = artist.GetProperty("name").GetString();
+            var relationType = relation.GetProperty("type").GetString();
+
+            Console.WriteLine($"{artistName} -> {relationType}");
+        }
+    }
     public async Task<List<Relation>> GetReleaseRelationsAsync(string mbid)
     {
         var url = $"https://musicbrainz.org/ws/2/release/{mbid}?inc=artist-rels&fmt=json";

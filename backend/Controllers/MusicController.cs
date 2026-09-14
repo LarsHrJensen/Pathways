@@ -35,6 +35,54 @@ public class MusicController : ControllerBase
         return Ok(result);
     }
 
+    [HttpGet("recoding-relations/{mbid}")]
+    public async Task<IActionResult> GetRecordingRelations(string mbid)
+    {
+        await _musicBrainzService.GetArtistRecordingRelationsAsync(mbid);
+
+        return Ok();
+    }
+
+    [HttpGet("work-relations/{mbid}")]
+    public async Task<IActionResult> GetWorkRelations(string mbid)
+    {
+        await _musicBrainzService.GetArtistWorkRelationsAsync(mbid);
+
+        return Ok();
+    }
+
+    [HttpGet("artist-release-relations/{mbid}")]
+    public async Task<IActionResult> GetArtistReleaseRelations(string mbid)
+    {
+        await _musicBrainzService.GetArtistReleaseRelationsAsync(mbid);
+
+        return Ok();
+    }
+
+    [HttpGet("artist-release-group-relations/{mbid}")]
+    public async Task<IActionResult> GetArtistReleaseGroupRelations(string mbid)
+    {
+        await _musicBrainzService.GetArtistReleaseGroupRelationsAsync(mbid);
+
+        return Ok();
+    }
+
+    [HttpGet("test-recording-search")]
+    public async Task<IActionResult> TestRecordingSearch()
+    {
+        await _musicBrainzService.SearchRecordingAsync();
+
+        return Ok();
+    }
+
+        [HttpGet("test-traversal/{recordingMbid}")]
+    public async Task<IActionResult> TestTraversal(string recordingMbid)
+    {
+        await _musicBrainzService.TestRecordingTraversalAsync(recordingMbid);
+
+        return Ok();
+    }
+
     [HttpGet("release-relations/{mbid}")]
     public async Task<IActionResult> GetReleaseRelations(string mbid)
     {

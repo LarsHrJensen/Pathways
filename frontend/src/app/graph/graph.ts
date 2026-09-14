@@ -89,6 +89,10 @@ export class GraphComponent implements AfterViewInit {
         this.sigma.on('leaveNode', () => {
             this.handleLeaveNodeHover();
         });
+
+        this.sigma.on('clickNode', ({ node }) => {
+            console.log('Clicked node:', node);
+        });
     }
 
     ngOnChanges(changes: SimpleChanges): void {
@@ -305,6 +309,10 @@ export class GraphComponent implements AfterViewInit {
         }
         console.log('Graph', this.graph);
         console.log('Will add node: ', results.id, results.name, results.type);
+
+        if (this.graph.hasNode(results.id)) {
+            return;
+        }
 
         this.graph.addNode(
             results.id,{
