@@ -99,6 +99,28 @@ public class MusicBrainzService
 
         var relations = document.RootElement.GetProperty("relations");
 
+        var producerRelations = relations
+            .EnumerateArray()
+            .Where(relation =>
+                relation.GetProperty("type").GetString() == "producer");
+
+        Console.WriteLine("=== SATELLITE OF LOVE ===");
+
+        foreach (var relation in producerRelations)
+        {
+            var recording = relation.GetProperty("recording");
+            var title = recording.GetProperty("title").GetString();
+
+            if (title != null &&
+                title.Contains("Satellite of Love",
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                var id = recording.GetProperty("id").GetString();
+
+                Console.WriteLine($"{title} -> {id}");
+            }
+        }
+
         Console.WriteLine("=== ARTIST -> RECORDING RELATIONS ===");
 
         var relationTypes = relations
@@ -179,86 +201,34 @@ public class MusicBrainzService
         }
     }
 
-    public async Task GetArtistReleaseGroupRelationsAsync(string mbid)
-    {
-        var url =
-            $"https://musicbrainz.org/ws/2/artist/{mbid}?inc=release-group-rels&fmt=json";
+public async Task GetReleaseGroupReleasesAsync(string releaseMbid)
+{
+    var url =
+    $"https://musicbrainz.org/ws/2/release/{releaseMbid}?inc=artist-rels+label-rels+recording-rels+work-rels&fmt=json";
 
         var json = await _httpClient.GetStringAsync(url);
 
-        using var document = JsonDocument.Parse(json);
+    using var document = JsonDocument.Parse(json);
 
-        var relations = document.RootElement.GetProperty("relations");
+    var relations = document.RootElement.GetProperty("relations");
 
-        var relationTypes = relations
-            .EnumerateArray()
-            .Select(relation => relation.GetProperty("type").GetString())
-            .Where(type => type != null)
-            .GroupBy(type => type)
-            .OrderBy(group => group.Key);
+    Console.WriteLine("=== RELEASE -> ARTIST RELATIONS ===");
 
-        Console.WriteLine("=== ARTIST -> RELEASE GROUP RELATIONS ===");
+    var relationTypes = relations
+        .EnumerateArray()
+        .Select(relation => relation.GetProperty("type").GetString())
+        .Where(type => type != null)
+        .GroupBy(type => type)
+        .OrderBy(group => group.Key);
 
-        foreach (var group in relationTypes)
-        {
-            Console.WriteLine($"{group.Key}: {group.Count()}");
-        }
-    }
+    Console.WriteLine("=== RELEASE RELATION TYPES ===");
 
-    public async Task SearchRecordingAsync() //for test
+    foreach (var group in relationTypes)
     {
-        var title = "Like a Rolling Stone";
-
-        var url =
-            $"https://musicbrainz.org/ws/2/recording/?query=recording:\"{Uri.EscapeDataString(title)}\"%20AND%20artist:\"Bob%20Dylan\"&fmt=json";
-
-        var json = await _httpClient.GetStringAsync(url);
-
-        using var document = JsonDocument.Parse(json);
-
-        var recordings = document
-            .RootElement
-            .GetProperty("recordings");
-
-        Console.WriteLine("=== RECORDING SEARCH RESULTS ===");
-
-        foreach (var recording in recordings.EnumerateArray().Take(10))
-        {
-            var id = recording.GetProperty("id").GetString();
-            var recordingTitle = recording.GetProperty("title").GetString();
-
-            Console.WriteLine($"{recordingTitle} -> {id}");
-        }
+        Console.WriteLine($"{group.Key}: {group.Count()}");
     }
+}
 
-        public async Task TestRecordingTraversalAsync(string recordingMbid)
-    {
-        var url =
-            $"https://musicbrainz.org/ws/2/recording/{recordingMbid}?inc=artist-rels&fmt=json";
-
-        var json = await _httpClient.GetStringAsync(url);
-
-        using var document = JsonDocument.Parse(json);
-
-        var relations = document
-            .RootElement
-            .GetProperty("relations");
-
-        Console.WriteLine("=== ARTISTS ON RECORDING ===");
-
-        foreach (var relation in relations.EnumerateArray())
-        {
-            if (!relation.TryGetProperty("artist", out var artist))
-            {
-                continue;
-            }
-
-            var artistName = artist.GetProperty("name").GetString();
-            var relationType = relation.GetProperty("type").GetString();
-
-            Console.WriteLine($"{artistName} -> {relationType}");
-        }
-    }
     public async Task<List<Relation>> GetReleaseRelationsAsync(string mbid)
     {
         var url = $"https://musicbrainz.org/ws/2/release/{mbid}?inc=artist-rels&fmt=json";
@@ -290,6 +260,94 @@ public class MusicBrainzService
         }
 
         return result;
+    }
+
+    // Album 
+    public async Task<List<Album>> GetArtistAlbumsAsync(string mbid)
+    {
+        var url =
+            $"https://musicbrainz.org/ws/2/release-group?artist={mbid}&type=album&limit=100&fmt=json";
+
+        var json = await _httpClient.GetStringAsync(url);
+
+        using var document = JsonDocument.Parse(json);
+
+        var releaseGroups = document
+            .RootElement
+            .GetProperty("release-groups");
+
+        var albums = new List<Album>();
+
+        foreach (var releaseGroup in releaseGroups.EnumerateArray())
+        {
+            var secondaryTypes = releaseGroup
+                .GetProperty("secondary-types")
+                .EnumerateArray()
+                .Select(type => type.GetString())
+                .Where(type => type != null)
+                .ToList();
+
+            var excludedTypes = new[]
+            {
+                "Compilation",
+                "Live",
+                "Soundtrack"
+            };
+
+            var shouldExclude = secondaryTypes
+                .Any(type => excludedTypes.Contains(type));
+
+            if (shouldExclude)
+            {
+                continue;
+            }
+
+            albums.Add(new Album
+            {
+                Id = releaseGroup.GetProperty("id").GetString(),
+                Title = releaseGroup.GetProperty("title").GetString()
+            });
+        }
+
+        return albums;
+    }
+
+    //Gets projects related to an artist
+    public async Task<List<ArtistRelation>> GetArtistProjectRelationsAsync(string mbid)
+    {
+        var relations = await GetArtistRelationsAsync(mbid);
+
+        var projectRelationTypes = new[]
+        {
+            "collaboration",
+            "member of band",
+            "supporting musician",
+            "instrumental supporting musician"
+        };
+
+        var projectArtistTypes = new[]
+        {
+            "Group",
+            "Orchestra"
+        };
+
+        return relations
+            .Where(relation => 
+                projectArtistTypes.Contains(relation.ArtistType) &&
+                projectRelationTypes.Contains(relation.RelationType))
+            .ToList();
+    }
+
+        // Gets members of a group/project
+        public async Task<List<ArtistRelation>> GetGroupMemberRelationsAsync(string mbid)
+    {
+        var relations = await GetArtistRelationsAsync(mbid);
+
+        return relations
+            .Where(relation =>
+                relation.RelationType == "member of band" &&
+                relation.ArtistType == "Person")
+            .ToList();
     }
 
     public async Task<string?> GetWikidataIdAsync(string mbid)
@@ -329,6 +387,7 @@ public class MusicBrainzService
         return null;
     }
 
+    //Search suggestions
     public async Task<List<SearchResult>> GetSearchResultAsync(string query)
     {
         var url = $"https://musicbrainz.org/ws/2/artist/?query={query}&fmt=json&limit=5";
