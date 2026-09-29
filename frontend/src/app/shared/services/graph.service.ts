@@ -227,6 +227,62 @@ export class GraphService {
     return undefined;
   }
 
+  addCategoryNode(
+    graph: Graph,
+    sourceNodeId: string,
+    category: string,
+    index: number,
+    total: number
+  ): void {
+
+    const categoryNodeId =
+      `${sourceNodeId}-${category.toLowerCase()}`;
+
+    if (graph.hasNode(categoryNodeId)) {
+      return;
+    }
+
+    const sourceAttributes =
+      graph.getNodeAttributes(sourceNodeId);
+
+    const radius = 0.02;
+
+    const angle = this.calculateAngle(
+      index,
+      total
+    );
+
+    let x =
+      sourceAttributes['x'] + Math.cos(angle) * radius;
+
+    let y =
+      sourceAttributes['y'] + Math.sin(angle) * radius;
+
+    if (this.isPositionOccupied(graph, x, y, 0.01)) {
+      const angleOffset = 0.15;
+      const alternativeAngle = angle + angleOffset;
+
+      x =
+        sourceAttributes['x'] +
+        Math.cos(alternativeAngle) * radius;
+
+      y =
+        sourceAttributes['y'] +
+        Math.sin(alternativeAngle) * radius;
+    }
+
+    graph.addNode(categoryNodeId, {
+      label: category,
+      x: x,
+      y: y,
+      size: 5,
+      nodeType: 'category',
+      parentNodeId: sourceNodeId
+    });
+
+    graph.mergeEdge(sourceNodeId, categoryNodeId);
+  }
+
   addArtistEdge(
     graph: Graph,
     sourceNodeId: string,

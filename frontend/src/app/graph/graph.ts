@@ -222,7 +222,13 @@ export class GraphComponent implements AfterViewInit {
             }
 
             if (nodeType === 'artist'){
-               this.handleArtistClick(node);
+                const source = this.graph!.getNodeAttribute(node, 'source');
+
+                if (source === 'search') {
+                    console.log('Search artist clicked: ', node);
+                } else{
+                    this.handleArtistClick(node);
+                }
             }
 
             this.cdr.detectChanges();
@@ -233,6 +239,62 @@ export class GraphComponent implements AfterViewInit {
 
             this.searchNodeOnGoogle(node);
         });
+    }
+
+    //Listens for click on searched nodes (ignores clicks on nodes from uploaded playlist)
+    private setupSearchNodeClick(): void {
+        this.sigma!.on('clickNode', ({ node }) => {
+            const source = this.graph!.getNodeAttribute(node, 'source');
+
+            if (source === 'search') {
+                this.handleSearchArtistClick(node);
+            }
+        });
+    }
+
+    private handleSearchArtistClick(nodeId: string): void {
+        this.musicbrainzApiService
+            .getArtistRelations(nodeId)
+            .subscribe(relations => {
+                const projectRelations =
+                    this.getProjectRelations(relations);
+
+                if (projectRelations.length > 0) {
+                    this.graphService.addCategoryNode(
+                        this.graph!, 
+                        nodeId,
+                        'Projects',
+                        0,
+                        1
+                    );
+                }
+            });
+    }
+
+    private addCategoryNode(
+        parentNodeId: string,
+        category: string
+    ): void {
+        const parentAttributes =
+            this.graph!.getNodeAttributes(parentNodeId);
+        
+        const categoryNodeId =
+            `${parentNodeId}-${category.toLowerCase()}`;
+
+        if (this.graph!.hasNode(categoryNodeId)) {
+            return;
+        }
+
+        this.graph!.addNode(categoryNodeId, {
+            label: category,
+            x: parentAttributes['x'] +1,
+            y: parentAttributes['y'],
+            size: 5,
+            nodeType: 'category',
+            parentNodeId: parentNodeId
+        });
+
+        this.graph!.addEdge(parentNodeId, categoryNodeId);
     }
 
     //Handles 1st click on track from uploaded playlist
@@ -306,6 +368,7 @@ export class GraphComponent implements AfterViewInit {
         if (!this.graph) {
             this.graph = this.graphService.createEmptyGraph();
             this.initializeSigma(this.graph);
+            this.setupSearchNodeClick();
         }
         console.log('Graph', this.graph);
         console.log('Will add node: ', results.id, results.name, results.type);
@@ -322,12 +385,22 @@ export class GraphComponent implements AfterViewInit {
                 size: 5,
                 nodeType: 'artist',
                 artistType: results.type,
+                source: 'search',
                 expanded: false,
                 relationLoaded: false
             }
         );
      
     }
+
+    private getProjectRelations(
+            relations: ArtistRelation[]
+        ): ArtistRelation[] {
+            return relations.filter(
+                relation => relation.relationType === 'member of band'
+            );
+    }
+    
 
     private loadArtistRelations(
         selectedTrack: 
@@ -345,7 +418,6 @@ export class GraphComponent implements AfterViewInit {
                     });
             });
     }
-
 
     private loadRelationByArtistId(
         artistId: string
