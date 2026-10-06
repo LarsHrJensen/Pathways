@@ -244,10 +244,18 @@ export class GraphComponent implements AfterViewInit {
     //Listens for click on searched nodes (ignores clicks on nodes from uploaded playlist)
     private setupSearchNodeClick(): void {
         this.sigma!.on('clickNode', ({ node }) => {
-            const source = this.graph!.getNodeAttribute(node, 'source');
+            const nodeType =
+                this.graph!.getNodeAttribute(node, 'nodeType');
+
+            const source = 
+                this.graph!.getNodeAttribute(node, 'source');
 
             if (source === 'search') {
                 this.handleSearchArtistClick(node);
+            }
+
+            if (nodeType === 'category') {
+                this.handleCategoryClick(node);
             }
         });
     }
@@ -264,6 +272,7 @@ export class GraphComponent implements AfterViewInit {
                         this.graph!, 
                         nodeId,
                         'Projects',
+                        projectRelations,
                         0,
                         1
                     );
@@ -271,30 +280,42 @@ export class GraphComponent implements AfterViewInit {
             });
     }
 
-    private addCategoryNode(
-        parentNodeId: string,
-        category: string
-    ): void {
+    private handleCategoryClick(nodeId: string): void {
+        const relations: ArtistRelation[] =
+            this.graph!.getNodeAttribute(nodeId, 'relations');
+
+        const parentNodeId =
+            this.graph!.getNodeAttribute(nodeId, 'parentNodeId');
+
         const parentAttributes =
             this.graph!.getNodeAttributes(parentNodeId);
-        
-        const categoryNodeId =
-            `${parentNodeId}-${category.toLowerCase()}`;
 
-        if (this.graph!.hasNode(categoryNodeId)) {
-            return;
-        }
+        const sourceAttibutes =
+            this.graph!.getNodeAttributes(nodeId);
 
-        this.graph!.addNode(categoryNodeId, {
-            label: category,
-            x: parentAttributes['x'] +1,
-            y: parentAttributes['y'],
-            size: 5,
-            nodeType: 'category',
-            parentNodeId: parentNodeId
+        const directionAngle = Math.atan2(
+            sourceAttibutes['y'] - parentAttributes['y'],
+            sourceAttibutes['x'] - parentAttributes['x']
+        );
+
+        relations.forEach((relation, index) => {
+            this.graphService.addArtistNode(
+                this.graph!,
+                nodeId,
+                relation.artistId,
+                relation.artistName,
+                relation.artistType,
+                index,
+                relations.length,
+                directionAngle
+            );
+
+            this.graphService.addArtistEdge(
+                this.graph!,
+                nodeId,
+                relation.artistId
+            );
         });
-
-        this.graph!.addEdge(parentNodeId, categoryNodeId);
     }
 
     //Handles 1st click on track from uploaded playlist

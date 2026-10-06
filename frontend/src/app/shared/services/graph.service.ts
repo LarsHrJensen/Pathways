@@ -1,6 +1,7 @@
 import { Attribute, Injectable } from '@angular/core';
 import Graph from 'graphology';
 import { Track } from '../models/track';
+import { ArtistRelation } from '../models/artist-relation';
 
 @Injectable({
   providedIn: 'root',
@@ -231,6 +232,7 @@ export class GraphService {
     graph: Graph,
     sourceNodeId: string,
     category: string,
+    relations: ArtistRelation[],
     index: number,
     total: number
   ): void {
@@ -277,7 +279,8 @@ export class GraphService {
       y: y,
       size: 5,
       nodeType: 'category',
-      parentNodeId: sourceNodeId
+      parentNodeId: sourceNodeId,
+      relations: relations
     });
 
     graph.mergeEdge(sourceNodeId, categoryNodeId);
