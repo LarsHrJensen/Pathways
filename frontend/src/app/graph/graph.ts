@@ -108,6 +108,9 @@ export class GraphComponent implements AfterViewInit {
         data: PartialButFor<NodeDisplayData, "label" | "color" | "size" | "x" | "y">,
         settings: Settings<Attributes, Attributes, Attributes>
     ): void{
+
+        console.log('Drawing label: ', data.label);
+
         const nodeType = this.graph!.getNodeAttribute(data['key'], 'nodeType');
 
                     if (!data.label) {
@@ -316,6 +319,15 @@ export class GraphComponent implements AfterViewInit {
                 relation.artistId
             );
         });
+
+        relations.forEach(relation => {
+            const attributes =
+                this.graph!.getNodeAttributes(relation.artistId);
+
+            console.log('Artist:', attributes['label']);
+            console.log('Force label:', attributes['forceLabel']);
+            console.log('Hidden:', attributes['hidden']);
+        });
     }
 
     //Handles 1st click on track from uploaded playlist
@@ -411,6 +423,15 @@ export class GraphComponent implements AfterViewInit {
                 relationLoaded: false
             }
         );
+
+        this.sigma!.setCustomBBox({
+            x: [-0.1, 0.1],
+            y: [-0.1, 0.1]
+        });
+
+        this.sigma!.getCamera().setState({
+            ratio: 0.35
+        });
      
     }
 

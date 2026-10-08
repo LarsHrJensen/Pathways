@@ -79,25 +79,30 @@ export class GraphService {
 
     const sourceAttributes = graph.getNodeAttributes(sourceNodeId);
 
-    let radius = 0.02
+    const angle = this.calculateAngle(
+      index,
+      total,
+      directionAngle
+    );
 
-   const angle = this.calculateAngle(
-    index,
-    total,
-    directionAngle
-   );
+    // Increase radius towards the outer edges of the fan
+    const baseRadius = 0.02;
+    const angleDifference = Math.abs(angle - (directionAngle ?? 0));
+    const radiusMultiplier = 1 + 0.3 * Math.sin(angleDifference);
+
+    let radius = baseRadius * radiusMultiplier;
 
     let x = sourceAttributes['x'] + Math.cos(angle) * radius;
     let y = sourceAttributes['y'] + Math.sin(angle) * radius;
 
     if (this.isPositionOccupied(graph, x, y, 0.01)) {
 
-    const angleOffset = 0.15;
-    const alternativeAngle = angle + angleOffset;
+      const angleOffset = 0.15;
+      const alternativeAngle = angle + angleOffset;
 
-    x = sourceAttributes['x'] + Math.cos(alternativeAngle) * radius;
-    y = sourceAttributes['y'] + Math.sin(alternativeAngle) * radius;
-  }
+      x = sourceAttributes['x'] + Math.cos(alternativeAngle) * radius;
+      y = sourceAttributes['y'] + Math.sin(alternativeAngle) * radius;
+    }
 
     graph.addNode(artistId, {
       label: artistName,
@@ -108,7 +113,8 @@ export class GraphService {
       artistType: artistType,
       parentNodeId: sourceNodeId,
       expanded: false,
-      relationLoaded: false
+      relationLoaded: false,
+      forceLabel: true
     });
   }
 
@@ -154,7 +160,7 @@ export class GraphService {
       return baseDirection;
     }
 
-    // 2 nodes: 60° spread around the direction
+    // 2 nodes: spread 60°
     if (total === 2) {
       const spread = Math.PI / 3;
       const startAngle = baseDirection - spread / 2;
@@ -163,23 +169,14 @@ export class GraphService {
       return startAngle + angleStep * index;
     }
 
-        // First click with 5+ nodes: spread 360°
+    // First expansion: distribute nodes around 360°
     if (directionAngle === undefined) {
       return (2 * Math.PI * index) / total;
     }
 
-    //following clicks with 3-4 nodes: spread 120°
-    if(total < 5) {
-      const spread = (2 * Math.PI) / 3
-      const startAngle = directionAngle - spread / 2;
-      const angleStep = spread / (total - 1);
-
-      return startAngle + angleStep * index;
-    }
-
-    // Following clicks with 3+ nodes: spread 180° away from parent
-    const spread = Math.PI;
-    const startAngle = directionAngle - spread / 2;
+    // Following expansions: spread 140° forward
+    const spread = (140 * Math.PI) / 180;
+    const startAngle = baseDirection - spread / 2;
     const angleStep = spread / (total - 1);
 
     return startAngle + angleStep * index;
