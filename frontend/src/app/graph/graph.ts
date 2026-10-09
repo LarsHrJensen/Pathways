@@ -91,7 +91,21 @@ export class GraphComponent implements AfterViewInit {
         });
 
         this.sigma.on('clickNode', ({ node }) => {
-            console.log('Clicked node:', node);
+            const nodeType =
+                this.graph!.getNodeAttribute(node, 'nodeType');
+
+            console.log('Clicked node: ', node);
+            console.log('Node type: ', nodeType);
+
+            if (nodeType === 'artist') {
+                console.log('Calling handleArtistClick');
+                this.handleArtistClick(node);
+            }
+
+            if (nodeType === 'category') {
+                console.log('Calling handleCategoryClick');
+                this.handleCategoryClick(node);
+            }
         });
     }
 
@@ -246,15 +260,19 @@ export class GraphComponent implements AfterViewInit {
 
     //Listens for click on searched nodes (ignores clicks on nodes from uploaded playlist)
     private setupSearchNodeClick(): void {
+
+        console.log('Setting up search node click handler');
+
         this.sigma!.on('clickNode', ({ node }) => {
+
             const nodeType =
                 this.graph!.getNodeAttribute(node, 'nodeType');
 
             const source = 
                 this.graph!.getNodeAttribute(node, 'source');
 
-            if (source === 'search') {
-                this.handleSearchArtistClick(node);
+            if (source === 'artist') {
+                this.handleArtistClick(node);
             }
 
             if (nodeType === 'category') {
@@ -263,22 +281,32 @@ export class GraphComponent implements AfterViewInit {
         });
     }
 
-    private handleSearchArtistClick(nodeId: string): void {
+    private loadArtistCategories(nodeId: string): void {
         this.musicbrainzApiService
             .getArtistRelations(nodeId)
-            .subscribe(relations => {
-                const projectRelations =
-                    this.getProjectRelations(relations);
+            .subscribe({
+                next: relations => {
+                    const projectRelations =
+                        this.getProjectRelations(relations);
 
-                if (projectRelations.length > 0) {
-                    this.graphService.addCategoryNode(
-                        this.graph!, 
-                        nodeId,
-                        'Projects',
-                        projectRelations,
-                        0,
-                        1
+                    if (projectRelations.length > 0) {
+                        this.graphService.addCategoryNode(
+                            this.graph!,
+                            nodeId,
+                            'Projects',
+                            projectRelations,
+                            0,
+                            1
+                        );
+                    }
+
+                    this.graph!.setNodeAttribute(
+                        nodeId, 'relationLoaded', true
                     );
+                },
+                error: error => {
+                    console.error('Failed to load artist relations:', error);
+                    this.graph!.setNodeAttribute(nodeId, 'expanded', false);
                 }
             });
     }
@@ -401,7 +429,7 @@ export class GraphComponent implements AfterViewInit {
         if (!this.graph) {
             this.graph = this.graphService.createEmptyGraph();
             this.initializeSigma(this.graph);
-            this.setupSearchNodeClick();
+           // this.setupSearchNodeClick();
         }
         console.log('Graph', this.graph);
         console.log('Will add node: ', results.id, results.name, results.type);
@@ -565,7 +593,7 @@ export class GraphComponent implements AfterViewInit {
             this.expandNode(nodeId);
             this.graph!.setNodeAttribute(nodeId, 'color', 'green');
         } else {
-            this.loadRelationByArtistId(nodeId);
+            this.loadArtistCategories(nodeId);
             this.graph!.setNodeAttribute(nodeId, 'relationLoaded', true);
             this.graph!.setNodeAttribute(nodeId, 'color', 'green');
         }
