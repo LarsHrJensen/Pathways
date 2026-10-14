@@ -26,6 +26,7 @@
   @if (hoveredArtistInfo) {
   <div
     class="artist-hover"
+    [class.fade-out]="isHoverFading"
     [style.left.px]="hoverX + 15"
     [style.top.px]="hoverY + 15"
   >
@@ -55,6 +56,7 @@
 @if (hoveredGroupInfo) {
   <div
     class="artist-hover"
+    [class.fade-out]="isHoverFading"
     [style.left.px]="hoverX + 15"
     [style.top.px]="hoverY + 15"
   >

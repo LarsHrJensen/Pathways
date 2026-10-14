@@ -34,7 +34,10 @@ export class GraphComponent implements AfterViewInit {
   @ViewChild('container')
   container!: ElementRef;
 
+  private hoverHideTimeout?: ReturnType<typeof setTimeout>;
   private hoverTimeout?: ReturnType<typeof setTimeout>;
+  isHoverFading = false;
+  private activeHoverNodeId?: string
   private sigma?: Sigma;
   private graph?: Graph;
   private activePathNodeIds = new Set<string>();
@@ -159,6 +162,15 @@ export class GraphComponent implements AfterViewInit {
           if (nodeType !== 'artist'){
             return;
           }
+
+          if (this.hoverHideTimeout) {
+            clearTimeout(this.hoverHideTimeout);
+            this.hoverHideTimeout = undefined;
+          }
+
+          this.isHoverFading = false;
+          
+          this.activeHoverNodeId = node;
         
           const artistType = this.graph!.getNodeAttribute(
             node,
@@ -177,6 +189,10 @@ export class GraphComponent implements AfterViewInit {
           
           }
 
+          this.hoveredArtistInfo = undefined;
+          this.hoveredGroupInfo = undefined;
+          this.hoveredArtistName = undefined;
+
             this.hoverX = event.x;
             this.hoverY = event.y;
 
@@ -185,16 +201,19 @@ export class GraphComponent implements AfterViewInit {
              
     }
 
-    private handleLeaveNodeHover(): void{
+    private handleLeaveNodeHover(): void {
         if (this.hoverTimeout) {
                 clearTimeout(this.hoverTimeout);
                 this.hoverTimeout = undefined;
             }
 
-            this.hoveredArtistInfo = undefined;
-            this.hoveredArtistName = undefined;
+            this.activeHoverNodeId = undefined;
 
-            this.cdr.detectChanges();
+            this.hoverHideTimeout = setTimeout(() => {
+                this.isHoverFading = true;
+                this.cdr.detectChanges();
+            }, 4000)
+
     }
 
     // Sets up zoom labels based on the camera's zoom ratio
@@ -282,10 +301,24 @@ export class GraphComponent implements AfterViewInit {
     }
 
     private loadArtistCategories(nodeId: string): void {
+
+        const artistType = this.graph!.getNodeAttribute(
+            nodeId,
+            'artistType'
+        );
+
         this.musicbrainzApiService
             .getArtistRelations(nodeId)
             .subscribe({
                 next: relations => {
+                    
+                    console.table(
+                        relations.filter(r => r.artistType === 'Group')
+                    );
+
+                    if (artistType === 'Person') {
+
+                    
                     const projectRelations =
                         this.getProjectRelations(relations);
 
@@ -298,6 +331,24 @@ export class GraphComponent implements AfterViewInit {
                             0,
                             1
                         );
+                    }
+
+                    } else if (artistType === 'Group') {
+                        
+                        const bandMemberRelations =
+                            this.getBandMemberRelations(relations);
+
+                        if (bandMemberRelations.length > 0) {
+                            this.graphService.addCategoryNode(
+                                this.graph!,
+                                nodeId,
+                                'Band Members',
+                                bandMemberRelations,
+                                0,
+                                1
+                            );
+                        }
+
                     }
 
                     this.graph!.setNodeAttribute(
@@ -429,14 +480,28 @@ export class GraphComponent implements AfterViewInit {
         if (!this.graph) {
             this.graph = this.graphService.createEmptyGraph();
             this.initializeSigma(this.graph);
-           // this.setupSearchNodeClick();
         }
-        console.log('Graph', this.graph);
-        console.log('Will add node: ', results.id, results.name, results.type);
 
-        if (this.graph.hasNode(results.id)) {
+        if (
+            this.graph.order === 1 &&
+            this.graph.hasNode(results.id)
+        ) {
             return;
         }
+
+        // Reset graph before starting a new exploration
+        this.graph.clear();
+
+        // Reset navigation and selected information
+        this.activePathNodeIds.clear();
+        this.activePathLabels = [];
+        this.selectedTrack = undefined;
+
+        this.hoveredArtistInfo = undefined;
+        this.hoveredGroupInfo = undefined;
+        this.hoveredArtistName = undefined;
+
+        console.log('Graph reset. New root artist: ', results.name);
 
         this.graph.addNode(
             results.id,{
@@ -458,8 +523,12 @@ export class GraphComponent implements AfterViewInit {
         });
 
         this.sigma!.getCamera().setState({
+            x: 0.5,
+            y: 0.5,
             ratio: 0.35
         });
+
+        this.cdr.detectChanges();
      
     }
 
@@ -469,6 +538,14 @@ export class GraphComponent implements AfterViewInit {
             return relations.filter(
                 relation => relation.relationType === 'member of band'
             );
+    }
+
+    getBandMemberRelations(
+        relations: ArtistRelation[]
+    ): ArtistRelation[] {
+        return relations.filter(
+            relation => relation.relationType === 'member of band'
+        );
     }
     
 
@@ -517,6 +594,10 @@ export class GraphComponent implements AfterViewInit {
             .subscribe(info => {
                 console.log('Hover info:', info);
 
+                if (this.activeHoverNodeId !== wikidataId) {
+                    return;
+                }
+
                 this.hoveredArtistInfo = info;
                 this.cdr.detectChanges();
             });
@@ -529,6 +610,10 @@ export class GraphComponent implements AfterViewInit {
             .getWikidataGroupHoverInfo(wikidataId)
             .subscribe(info => {
                 console.log('Group hover info: ', info)
+
+                if (this.activeHoverNodeId !== wikidataId) {
+                    return;
+                }
 
                 this.hoveredGroupInfo = info;
                 this.cdr.detectChanges();
