@@ -311,48 +311,76 @@ export class GraphComponent implements AfterViewInit {
             .getArtistRelations(nodeId)
             .subscribe({
                 next: relations => {
-                    
-                    console.table(
-                        relations.filter(r => r.artistType === 'Group')
+
+                    const originArtistId = this.graph!.getNodeAttribute(
+                        nodeId,
+                        'originArtistId'
                     );
 
                     if (artistType === 'Person') {
 
-                    
-                    const projectRelations =
-                        this.getProjectRelations(relations);
-
-                    if (projectRelations.length > 0) {
-                        this.graphService.addCategoryNode(
-                            this.graph!,
-                            nodeId,
-                            'Projects',
-                            projectRelations,
-                            0,
-                            1
+                        console.log(
+                            'Current artist:',
+                            this.graph!.getNodeAttribute(nodeId, 'label')
                         );
-                    }
+                        console.log('Origin artist ID:', originArtistId);
+                        console.table(this.getProjectRelations(relations));
 
-                    } else if (artistType === 'Group') {
-                        
-                        const bandMemberRelations =
-                            this.getBandMemberRelations(relations);
+                        const projectRelations =
+                            this.getProjectRelations(relations)
+                                .filter(relation =>
+                                    relation.artistId !== originArtistId
+                                );
 
-                        if (bandMemberRelations.length > 0) {
+                        if (projectRelations.length > 0) {
                             this.graphService.addCategoryNode(
                                 this.graph!,
                                 nodeId,
-                                'Band Members',
-                                bandMemberRelations,
+                                'Projects',
+                                projectRelations,
                                 0,
                                 1
                             );
                         }
 
+                    } else if (artistType === 'Group') {
+
+                        const projectRelations =
+                            this.getGroupProjectRelations(relations)
+                                .filter(relation =>
+                                    relation.artistId !== originArtistId
+                                );
+
+                        const bandMemberRelations =
+                            this.getBandMemberRelations(relations);
+
+                        const categories = [
+                            {
+                                name: 'Projects',
+                                relations: projectRelations
+                            },
+                            {
+                                name: 'Band Members',
+                                relations: bandMemberRelations
+                            }
+                        ].filter(category => category.relations.length > 0);
+
+                        categories.forEach((category, index) => {
+                            this.graphService.addCategoryNode(
+                                this.graph!,
+                                nodeId,
+                                category.name,
+                                category.relations,
+                                index,
+                                categories.length
+                            );
+                        });
                     }
 
                     this.graph!.setNodeAttribute(
-                        nodeId, 'relationLoaded', true
+                        nodeId,
+                        'relationLoaded',
+                        true
                     );
                 },
                 error: error => {
@@ -390,6 +418,12 @@ export class GraphComponent implements AfterViewInit {
                 index,
                 relations.length,
                 directionAngle
+            );
+
+            this.graph!.setNodeAttribute(
+                relation.artistId,
+                'originArtistId',
+                parentNodeId
             );
 
             this.graphService.addArtistEdge(
@@ -540,12 +574,20 @@ export class GraphComponent implements AfterViewInit {
             );
     }
 
-    getBandMemberRelations(
+    private getBandMemberRelations(
         relations: ArtistRelation[]
     ): ArtistRelation[] {
         return relations.filter(
             relation => relation.relationType === 'member of band'
         );
+    }
+
+    private getGroupProjectRelations(
+        relations: ArtistRelation[]
+    ): ArtistRelation[] {
+        return relations.filter(
+            relation => relation.relationType === 'subgroup'
+        )
     }
     
 
