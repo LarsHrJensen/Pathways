@@ -110,6 +110,11 @@ export class GraphComponent implements AfterViewInit {
                 this.handleCategoryClick(node);
             }
         });
+
+        this.sigma.on('rightClickNode', ({ node, event }) => {
+            event.preventSigmaDefault();
+            this.searchNodeOnGoogle(node);
+        });
     }
 
     ngOnChanges(changes: SimpleChanges): void {
@@ -268,12 +273,6 @@ export class GraphComponent implements AfterViewInit {
             }
 
             this.cdr.detectChanges();
-        });
-
-        this.sigma!.on('rightClickNode', ({ node, event }) => {
-            event.preventSigmaDefault();
-
-            this.searchNodeOnGoogle(node);
         });
     }
 
