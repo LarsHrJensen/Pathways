@@ -1,8 +1,10 @@
 using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using backend.DTOs;
 using backend.Models;
 using Microsoft.OpenApi;
+using repositories.interfaces;
 
 
 namespace backend.Services;
@@ -10,13 +12,20 @@ namespace backend.Services;
 public class MusicBrainzService
 {
     private readonly HttpClient _httpClient;
+    private readonly IMusicBrainzRepository _repository;
 
-    public MusicBrainzService(HttpClient httpClient)
+    public MusicBrainzService(HttpClient httpClient, IMusicBrainzRepository repository)
     {
+        _repository = repository;
         _httpClient = httpClient;
 
         _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd(
        "Pathways/0.1 (https://github.com/LarsHrJensen/Pathways)");
+    }
+
+    public async Task<List<AlbumDto>> GetAlbumsAsync(Guid artistId)
+    {
+        return await _repository.GetAlbumsAsync(artistId);
     }
 
     public async Task<Artist> SearchArtistAsync(string artist)

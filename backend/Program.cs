@@ -1,8 +1,22 @@
 using backend.Services;
+using Npgsql;
+using repositories.interfaces;
+using repositories;
 
 var builder = WebApplication.CreateBuilder(args);
 
+var connectionString = builder.Configuration
+    .GetConnectionString("MusicBrainzDb")
+    ?? throw new InvalidOperationException(
+        "MusicBrainz connection is missing.");
+    
+builder.Services.AddSingleton(
+    NpgsqlDataSource.Create(connectionString));
+
 builder.Services.AddControllers();
+builder.Services.AddScoped<
+    IMusicBrainzRepository,
+    MusicBrainzRepository>();
 builder.Services.AddScoped<MusicBrainzService>();
 builder.Services.AddScoped<WikidataService>();
 builder.Services.AddHttpClient();

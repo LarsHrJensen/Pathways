@@ -76,10 +76,10 @@ public async Task<IActionResult> TestReleases(string mbid)
         return Ok(result);
     }
 
-    [HttpGet("albums/{mbid}")]
-    public async Task<IActionResult> GetAlbums(string mbid)
+    [HttpGet("albums/{mbid:guid}")]
+    public async Task<IActionResult> GetAlbums(Guid mbid)
     {
-        var result = await _musicBrainzService.GetArtistAlbumsAsync(mbid);
+        var result = await _musicBrainzService.GetAlbumsAsync(mbid);
 
         return Ok(result);
     }
