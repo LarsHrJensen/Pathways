@@ -1,0 +1,31 @@
+.hero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2rem;
+}
+
+.hero-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.search-container {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+}
+
+app-search{
+    width: 100%;
+    max-width: 400px;
+}
+
+.upload-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: right;
+}
+

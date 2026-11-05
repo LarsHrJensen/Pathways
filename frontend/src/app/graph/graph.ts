@@ -1,4 +1,11 @@
-import { Component, AfterViewInit, ViewChild, ElementRef } from '@angular/core';
+import { 
+    Component, 
+    AfterViewInit, 
+    ViewChild, 
+    ElementRef,
+    Input,
+    SimpleChanges
+} from '@angular/core';
 import Sigma from 'sigma';
 import { MouseCoords, NodeDisplayData, PartialButFor } from 'sigma/types';
 import { Settings } from 'sigma/settings';
@@ -12,6 +19,7 @@ import { MusicBrainzApiService } from '../shared/services/musicbrainz-api.servic
 import { ArtistRelation } from '../shared/models/artist-relation';
 import { WikidataArtistHoverInfo } from '../shared/models/wikidata-artist-hover-info';
 import { WikidataGroupHoverInfo } from '../shared/models/wikidata-group-hover-info';
+import { SearchResult } from '../shared/models/search';
 
 @Component({
   selector: 'app-graph',
@@ -21,10 +29,15 @@ import { WikidataGroupHoverInfo } from '../shared/models/wikidata-group-hover-in
 })
 export class GraphComponent implements AfterViewInit {
 
+  @Input() selectedResult: SearchResult | null = null;
+
   @ViewChild('container')
   container!: ElementRef;
 
+  private hoverHideTimeout?: ReturnType<typeof setTimeout>;
   private hoverTimeout?: ReturnType<typeof setTimeout>;
+  isHoverFading = false;
+  private activeHoverNodeId?: string
   private sigma?: Sigma;
   private graph?: Graph;
   private activePathNodeIds = new Set<string>();
@@ -54,27 +67,62 @@ export class GraphComponent implements AfterViewInit {
 
             this.graph = this.graphService.createGraph(tracks);
 
-            this.sigma = new Sigma(
-            this.graph,
+            this.initializeSigma(this.graph);
+
+            this.setupZoomLabels(this.graph, tracks);
+            this.setupNodeClick(tracks);
+
+        });
+    }
+
+    private initializeSigma(graph: Graph): void {
+        this.sigma = new Sigma(
+            graph,
             this.container.nativeElement, {
                     defaultDrawNodeLabel: (context, data, settings) => {
                         this.drawNodeLabel(context, data, settings);
                     }
                 }
             );
-
-            this.setupZoomLabels(this.graph, tracks);
-            this.setupNodeClick(tracks);
-
-            this.sigma.on('enterNode', ({ node, event }) => {
+        
+        this.sigma.on('enterNode', ({ node, event }) => {
                 this.handleEnterNodeHover(node, event);
             });
 
-            this.sigma.on('leaveNode', () => {
-                this.handleLeaveNodeHover();
-            });
+        this.sigma.on('leaveNode', () => {
+            this.handleLeaveNodeHover();
+        });
+
+        this.sigma.on('clickNode', ({ node }) => {
+            const nodeType =
+                this.graph!.getNodeAttribute(node, 'nodeType');
+
+            console.log('Clicked node: ', node);
+            console.log('Node type: ', nodeType);
+
+            if (nodeType === 'artist') {
+                console.log('Calling handleArtistClick');
+                this.handleArtistClick(node);
+            }
+
+            if (nodeType === 'category') {
+                console.log('Calling handleCategoryClick');
+                this.handleCategoryClick(node);
+            }
+        });
+
+        this.sigma.on('rightClickNode', ({ node, event }) => {
+            event.preventSigmaDefault();
+            this.searchNodeOnGoogle(node);
         });
     }
+
+    ngOnChanges(changes: SimpleChanges): void {
+        if (changes['selectedResult'] && this.selectedResult) {
+            this.addSearchResultToGraph(this.selectedResult);
+        }
+    }
+
 
     // Places label up center for tracks from playlist and up right for relation nodes
     private drawNodeLabel(
@@ -82,6 +130,9 @@ export class GraphComponent implements AfterViewInit {
         data: PartialButFor<NodeDisplayData, "label" | "color" | "size" | "x" | "y">,
         settings: Settings<Attributes, Attributes, Attributes>
     ): void{
+
+        console.log('Drawing label: ', data.label);
+
         const nodeType = this.graph!.getNodeAttribute(data['key'], 'nodeType');
 
                     if (!data.label) {
@@ -116,6 +167,15 @@ export class GraphComponent implements AfterViewInit {
           if (nodeType !== 'artist'){
             return;
           }
+
+          if (this.hoverHideTimeout) {
+            clearTimeout(this.hoverHideTimeout);
+            this.hoverHideTimeout = undefined;
+          }
+
+          this.isHoverFading = false;
+          
+          this.activeHoverNodeId = node;
         
           const artistType = this.graph!.getNodeAttribute(
             node,
@@ -134,25 +194,31 @@ export class GraphComponent implements AfterViewInit {
           
           }
 
+          this.hoveredArtistInfo = undefined;
+          this.hoveredGroupInfo = undefined;
+          this.hoveredArtistName = undefined;
+
             this.hoverX = event.x;
             this.hoverY = event.y;
 
             this.hoveredArtistName =
                 this.graph!.getNodeAttribute(node, 'label');
-            
-            
+             
     }
 
-    private handleLeaveNodeHover(): void{
+    private handleLeaveNodeHover(): void {
         if (this.hoverTimeout) {
                 clearTimeout(this.hoverTimeout);
                 this.hoverTimeout = undefined;
             }
 
-            this.hoveredArtistInfo = undefined;
-            this.hoveredArtistName = undefined;
+            this.activeHoverNodeId = undefined;
 
-            this.cdr.detectChanges();
+            this.hoverHideTimeout = setTimeout(() => {
+                this.isHoverFading = true;
+                this.cdr.detectChanges();
+            }, 4000)
+
     }
 
     // Sets up zoom labels based on the camera's zoom ratio
@@ -197,16 +263,182 @@ export class GraphComponent implements AfterViewInit {
             }
 
             if (nodeType === 'artist'){
-               this.handleArtistClick(node);
+                const source = this.graph!.getNodeAttribute(node, 'source');
+
+                if (source === 'search') {
+                    console.log('Search artist clicked: ', node);
+                } else{
+                    this.handleArtistClick(node);
+                }
             }
 
             this.cdr.detectChanges();
         });
+    }
 
-        this.sigma!.on('rightClickNode', ({ node, event }) => {
-            event.preventSigmaDefault();
+    //Listens for click on searched nodes (ignores clicks on nodes from uploaded playlist)
+    private setupSearchNodeClick(): void {
 
-            this.searchNodeOnGoogle(node);
+        console.log('Setting up search node click handler');
+
+        this.sigma!.on('clickNode', ({ node }) => {
+
+            const nodeType =
+                this.graph!.getNodeAttribute(node, 'nodeType');
+
+            const source = 
+                this.graph!.getNodeAttribute(node, 'source');
+
+            if (source === 'artist') {
+                this.handleArtistClick(node);
+            }
+
+            if (nodeType === 'category') {
+                this.handleCategoryClick(node);
+            }
+        });
+    }
+
+    private loadArtistCategories(nodeId: string): void {
+
+        const artistType = this.graph!.getNodeAttribute(
+            nodeId,
+            'artistType'
+        );
+
+        this.musicbrainzApiService
+            .getArtistRelations(nodeId)
+            .subscribe({
+                next: relations => {
+
+                    const originArtistId = this.graph!.getNodeAttribute(
+                        nodeId,
+                        'originArtistId'
+                    );
+
+                    if (artistType === 'Person') {
+
+                        console.log(
+                            'Current artist:',
+                            this.graph!.getNodeAttribute(nodeId, 'label')
+                        );
+                        console.log('Origin artist ID:', originArtistId);
+                        console.table(this.getProjectRelations(relations));
+
+                        const projectRelations =
+                            this.getProjectRelations(relations)
+                                .filter(relation =>
+                                    relation.artistId !== originArtistId
+                                );
+
+                        if (projectRelations.length > 0) {
+                            this.graphService.addCategoryNode(
+                                this.graph!,
+                                nodeId,
+                                'Projects',
+                                projectRelations,
+                                0,
+                                1
+                            );
+                        }
+
+                    } else if (artistType === 'Group') {
+
+                        const projectRelations =
+                            this.getGroupProjectRelations(relations)
+                                .filter(relation =>
+                                    relation.artistId !== originArtistId
+                                );
+
+                        const bandMemberRelations =
+                            this.getBandMemberRelations(relations);
+
+                        const categories = [
+                            {
+                                name: 'Projects',
+                                relations: projectRelations
+                            },
+                            {
+                                name: 'Band Members',
+                                relations: bandMemberRelations
+                            }
+                        ].filter(category => category.relations.length > 0);
+
+                        categories.forEach((category, index) => {
+                            this.graphService.addCategoryNode(
+                                this.graph!,
+                                nodeId,
+                                category.name,
+                                category.relations,
+                                index,
+                                categories.length
+                            );
+                        });
+                    }
+
+                    this.graph!.setNodeAttribute(
+                        nodeId,
+                        'relationLoaded',
+                        true
+                    );
+                },
+                error: error => {
+                    console.error('Failed to load artist relations:', error);
+                    this.graph!.setNodeAttribute(nodeId, 'expanded', false);
+                }
+            });
+    }
+
+    private handleCategoryClick(nodeId: string): void {
+        const relations: ArtistRelation[] =
+            this.graph!.getNodeAttribute(nodeId, 'relations');
+
+        const parentNodeId =
+            this.graph!.getNodeAttribute(nodeId, 'parentNodeId');
+
+        const parentAttributes =
+            this.graph!.getNodeAttributes(parentNodeId);
+
+        const sourceAttibutes =
+            this.graph!.getNodeAttributes(nodeId);
+
+        const directionAngle = Math.atan2(
+            sourceAttibutes['y'] - parentAttributes['y'],
+            sourceAttibutes['x'] - parentAttributes['x']
+        );
+
+        relations.forEach((relation, index) => {
+            this.graphService.addArtistNode(
+                this.graph!,
+                nodeId,
+                relation.artistId,
+                relation.artistName,
+                relation.artistType,
+                index,
+                relations.length,
+                directionAngle
+            );
+
+            this.graph!.setNodeAttribute(
+                relation.artistId,
+                'originArtistId',
+                parentNodeId
+            );
+
+            this.graphService.addArtistEdge(
+                this.graph!,
+                nodeId,
+                relation.artistId
+            );
+        });
+
+        relations.forEach(relation => {
+            const attributes =
+                this.graph!.getNodeAttributes(relation.artistId);
+
+            console.log('Artist:', attributes['label']);
+            console.log('Force label:', attributes['forceLabel']);
+            console.log('Hidden:', attributes['hidden']);
         });
     }
 
@@ -277,6 +509,87 @@ export class GraphComponent implements AfterViewInit {
         })
     }
 
+    private addSearchResultToGraph(results: SearchResult): void {
+        if (!this.graph) {
+            this.graph = this.graphService.createEmptyGraph();
+            this.initializeSigma(this.graph);
+        }
+
+        if (
+            this.graph.order === 1 &&
+            this.graph.hasNode(results.id)
+        ) {
+            return;
+        }
+
+        // Reset graph before starting a new exploration
+        this.graph.clear();
+
+        // Reset navigation and selected information
+        this.activePathNodeIds.clear();
+        this.activePathLabels = [];
+        this.selectedTrack = undefined;
+
+        this.hoveredArtistInfo = undefined;
+        this.hoveredGroupInfo = undefined;
+        this.hoveredArtistName = undefined;
+
+        console.log('Graph reset. New root artist: ', results.name);
+
+        this.graph.addNode(
+            results.id,{
+                label: results.name,
+                x: 0,
+                y: 0,
+                size: 5,
+                nodeType: 'artist',
+                artistType: results.type,
+                source: 'search',
+                expanded: false,
+                relationLoaded: false
+            }
+        );
+
+        this.sigma!.setCustomBBox({
+            x: [-0.1, 0.1],
+            y: [-0.1, 0.1]
+        });
+
+        this.sigma!.getCamera().setState({
+            x: 0.5,
+            y: 0.5,
+            ratio: 0.35
+        });
+
+        this.cdr.detectChanges();
+     
+    }
+
+    private getProjectRelations(
+            relations: ArtistRelation[]
+        ): ArtistRelation[] {
+            return relations.filter(
+                relation => relation.relationType === 'member of band'
+            );
+    }
+
+    private getBandMemberRelations(
+        relations: ArtistRelation[]
+    ): ArtistRelation[] {
+        return relations.filter(
+            relation => relation.relationType === 'member of band'
+        );
+    }
+
+    private getGroupProjectRelations(
+        relations: ArtistRelation[]
+    ): ArtistRelation[] {
+        return relations.filter(
+            relation => relation.relationType === 'subgroup'
+        )
+    }
+    
+
     private loadArtistRelations(
         selectedTrack: 
         Track,sourceNode: string
@@ -293,7 +606,6 @@ export class GraphComponent implements AfterViewInit {
                     });
             });
     }
-
 
     private loadRelationByArtistId(
         artistId: string
@@ -323,6 +635,10 @@ export class GraphComponent implements AfterViewInit {
             .subscribe(info => {
                 console.log('Hover info:', info);
 
+                if (this.activeHoverNodeId !== wikidataId) {
+                    return;
+                }
+
                 this.hoveredArtistInfo = info;
                 this.cdr.detectChanges();
             });
@@ -335,6 +651,10 @@ export class GraphComponent implements AfterViewInit {
             .getWikidataGroupHoverInfo(wikidataId)
             .subscribe(info => {
                 console.log('Group hover info: ', info)
+
+                if (this.activeHoverNodeId !== wikidataId) {
+                    return;
+                }
 
                 this.hoveredGroupInfo = info;
                 this.cdr.detectChanges();
@@ -399,7 +719,7 @@ export class GraphComponent implements AfterViewInit {
             this.expandNode(nodeId);
             this.graph!.setNodeAttribute(nodeId, 'color', 'green');
         } else {
-            this.loadRelationByArtistId(nodeId);
+            this.loadArtistCategories(nodeId);
             this.graph!.setNodeAttribute(nodeId, 'relationLoaded', true);
             this.graph!.setNodeAttribute(nodeId, 'color', 'green');
         }

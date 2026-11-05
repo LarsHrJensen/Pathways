@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using backend.Services;
-using System.Threading.Tasks;
-using backend.DTOs;
+
 
 namespace backend.Controllers;
 
@@ -32,6 +31,55 @@ public class MusicController : ControllerBase
         await Task.Delay(1100); //to avoid 503 as musicbrainz only accepts 1 api-call pr sec
 
         var result = await _musicBrainzService.GetArtistRelationsAsync(mbid);
+
+        return Ok(result);
+    }
+
+    [HttpGet("recoding-relations/{mbid}")]
+    public async Task<IActionResult> GetRecordingRelations(string mbid)
+    {
+        await _musicBrainzService.GetArtistRecordingRelationsAsync(mbid);
+
+        return Ok();
+    }
+
+    [HttpGet("work-relations/{mbid}")]
+    public async Task<IActionResult> GetWorkRelations(string mbid)
+    {
+        await _musicBrainzService.GetArtistWorkRelationsAsync(mbid);
+
+        return Ok();
+    }
+
+    [HttpGet("artist-release-relations/{mbid}")]
+    public async Task<IActionResult> GetArtistReleaseRelations(string mbid)
+    {
+        await _musicBrainzService.GetArtistReleaseRelationsAsync(mbid);
+
+        return Ok();
+    }
+
+ [HttpGet("test-releases/{mbid}")]
+public async Task<IActionResult> TestReleases(string mbid)
+{
+    await _musicBrainzService.GetReleaseGroupReleasesAsync(mbid);
+
+    return Ok();
+}
+
+    [HttpGet("projects/{mbid}")]
+    public async Task<IActionResult> GetProjects(string mbid)
+    {
+        var result =
+            await _musicBrainzService.GetArtistProjectRelationsAsync(mbid);
+
+        return Ok(result);
+    }
+
+    [HttpGet("albums/{mbid:guid}")]
+    public async Task<IActionResult> GetAlbums(Guid mbid)
+    {
+        var result = await _musicBrainzService.GetAlbumsAsync(mbid);
 
         return Ok(result);
     }
@@ -85,6 +133,23 @@ public class MusicController : ControllerBase
             await _wikidataService.GetWikidataGroupHoverInfoAsync(wikidataId);
 
         return Ok(result);
+    }
+
+    [HttpGet("search/{query}")]
+    public async Task<IActionResult> GetSearchResult(string query)
+    {
+        try
+        {
+            var result = await _musicBrainzService.GetSearchResultAsync(query);
+            return Ok(result);
+        }
+        catch (HttpRequestException)
+        {
+            return StatusCode(
+                StatusCodes.Status503ServiceUnavailable,
+                "Music search is temporarily unavailable."
+            );
+        }
     }
 
 }

@@ -1,17 +1,28 @@
 import { Attribute, Injectable } from '@angular/core';
 import Graph from 'graphology';
 import { Track } from '../models/track';
+import { ArtistRelation } from '../models/artist-relation';
 
 @Injectable({
   providedIn: 'root',
 })
 export class GraphService {
 
+  createEmptyGraph(): Graph {
+    return new Graph();
+  }
+
   // Creates a graph using valence and energy as node coordinates
   createGraph(tracks: Track[]): Graph {
+    const graph = this.createEmptyGraph();
 
-    const graph = new Graph();
+    this.addTracksToGraph(graph, tracks);
 
+    return graph;
+  }
+
+  //When adding tracks from imported playlists
+  addTracksToGraph(graph : Graph, tracks: Track []): void {
     tracks.forEach((track) => {
 
       const red = Math.round(track.valence * 255);
@@ -48,8 +59,6 @@ export class GraphService {
         );
       }
     });
-
-    return graph;
   }
 
   addArtistNode(
@@ -70,25 +79,30 @@ export class GraphService {
 
     const sourceAttributes = graph.getNodeAttributes(sourceNodeId);
 
-    let radius = 0.02
+    const angle = this.calculateAngle(
+      index,
+      total,
+      directionAngle
+    );
 
-   const angle = this.calculateAngle(
-    index,
-    total,
-    directionAngle
-   );
+    // Increase radius towards the outer edges of the fan
+    const baseRadius = 0.02;
+    const angleDifference = Math.abs(angle - (directionAngle ?? 0));
+    const radiusMultiplier = 1 + 0.3 * Math.sin(angleDifference);
+
+    let radius = baseRadius * radiusMultiplier;
 
     let x = sourceAttributes['x'] + Math.cos(angle) * radius;
     let y = sourceAttributes['y'] + Math.sin(angle) * radius;
 
     if (this.isPositionOccupied(graph, x, y, 0.01)) {
 
-    const angleOffset = 0.15;
-    const alternativeAngle = angle + angleOffset;
+      const angleOffset = 0.15;
+      const alternativeAngle = angle + angleOffset;
 
-    x = sourceAttributes['x'] + Math.cos(alternativeAngle) * radius;
-    y = sourceAttributes['y'] + Math.sin(alternativeAngle) * radius;
-  }
+      x = sourceAttributes['x'] + Math.cos(alternativeAngle) * radius;
+      y = sourceAttributes['y'] + Math.sin(alternativeAngle) * radius;
+    }
 
     graph.addNode(artistId, {
       label: artistName,
@@ -99,7 +113,8 @@ export class GraphService {
       artistType: artistType,
       parentNodeId: sourceNodeId,
       expanded: false,
-      relationLoaded: false
+      relationLoaded: false,
+      forceLabel: true
     });
   }
 
@@ -145,7 +160,7 @@ export class GraphService {
       return baseDirection;
     }
 
-    // 2 nodes: 60° spread around the direction
+    // 2 nodes: spread 60°
     if (total === 2) {
       const spread = Math.PI / 3;
       const startAngle = baseDirection - spread / 2;
@@ -154,23 +169,14 @@ export class GraphService {
       return startAngle + angleStep * index;
     }
 
-        // First click with 5+ nodes: spread 360°
+    // First expansion: distribute nodes around 360°
     if (directionAngle === undefined) {
       return (2 * Math.PI * index) / total;
     }
 
-    //following clicks with 3-4 nodes: spread 120°
-    if(total < 5) {
-      const spread = (2 * Math.PI) / 3
-      const startAngle = directionAngle - spread / 2;
-      const angleStep = spread / (total - 1);
-
-      return startAngle + angleStep * index;
-    }
-
-    // Following clicks with 3+ nodes: spread 180° away from parent
-    const spread = Math.PI;
-    const startAngle = directionAngle - spread / 2;
+    // Following expansions: spread 140° forward
+    const spread = (140 * Math.PI) / 180;
+    const startAngle = baseDirection - spread / 2;
     const angleStep = spread / (total - 1);
 
     return startAngle + angleStep * index;
@@ -217,6 +223,64 @@ export class GraphService {
     }
 
     return undefined;
+  }
+
+  addCategoryNode(
+    graph: Graph,
+    sourceNodeId: string,
+    category: string,
+    relations: ArtistRelation[],
+    index: number,
+    total: number
+  ): void {
+
+    const categoryNodeId =
+      `${sourceNodeId}-${category.toLowerCase()}`;
+
+    if (graph.hasNode(categoryNodeId)) {
+      return;
+    }
+
+    const sourceAttributes =
+      graph.getNodeAttributes(sourceNodeId);
+
+    const radius = 0.02;
+
+    const angle = this.calculateAngle(
+      index,
+      total
+    );
+
+    let x =
+      sourceAttributes['x'] + Math.cos(angle) * radius;
+
+    let y =
+      sourceAttributes['y'] + Math.sin(angle) * radius;
+
+    if (this.isPositionOccupied(graph, x, y, 0.01)) {
+      const angleOffset = 0.15;
+      const alternativeAngle = angle + angleOffset;
+
+      x =
+        sourceAttributes['x'] +
+        Math.cos(alternativeAngle) * radius;
+
+      y =
+        sourceAttributes['y'] +
+        Math.sin(alternativeAngle) * radius;
+    }
+
+    graph.addNode(categoryNodeId, {
+      label: category,
+      x: x,
+      y: y,
+      size: 5,
+      nodeType: 'category',
+      parentNodeId: sourceNodeId,
+      relations: relations
+    });
+
+    graph.mergeEdge(sourceNodeId, categoryNodeId);
   }
 
   addArtistEdge(

@@ -69,3 +69,12 @@
   pointer-events: none;
   max-width: 280px;
 }
+
+.artist-hover {
+    transition: opacity 1s ease-out;
+}
+
+.artist-hover.fade-out {
+    opacity: 0;
+    pointer-events: none;
+}
