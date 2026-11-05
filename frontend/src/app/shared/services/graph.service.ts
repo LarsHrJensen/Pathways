@@ -2,6 +2,7 @@ import { Attribute, Injectable } from '@angular/core';
 import Graph from 'graphology';
 import { Track } from '../models/track';
 import { ArtistRelation } from '../models/artist-relation';
+import { Album } from '../models/album';
 
 @Injectable({
   providedIn: 'root',
@@ -118,6 +119,56 @@ export class GraphService {
     });
   }
 
+  addAlbumNode(
+    graph: Graph,
+    sourceNodeId: string,
+    album: Album,
+    index: number,
+    total: number,
+    directionAngle?: number
+  ): void {
+
+    if (graph.hasNode(album.albumId)) {
+      graph.setNodeAttribute(album.albumId, 'hidden', false);
+      return;
+    }
+
+    const sourceAttributes = graph.getNodeAttributes(sourceNodeId);
+
+    const angle = this.calculateAngle(
+      index,
+      total,
+      directionAngle
+    );
+
+    const baseRadius = 0.02;
+    const angleDifference = Math.abs(angle - (directionAngle ?? 0));
+    const radiusMultiplier = 1 + 0.3 * Math.sin(angleDifference);
+    const radius = baseRadius * radiusMultiplier;
+
+    let x = sourceAttributes['x'] + Math.cos(angle) * radius;
+    let y = sourceAttributes['y'] + Math.sin(angle) * radius;
+
+    if (this.isPositionOccupied(graph, x, y, 0.01)) {
+      const alternativeAngle = angle + 0.15;
+
+      x = sourceAttributes['x'] + Math.cos(alternativeAngle) * radius;
+      y = sourceAttributes['y'] + Math.sin(alternativeAngle) * radius;
+    }
+
+    graph.addNode(album.albumId, {
+      label: album.albumName,
+      x: x,
+      y: y,
+      size: 4,
+      nodeType: 'album',
+      releaseYear: album.releaseYear,
+      parentNodeId: sourceNodeId,
+      expanded: false,
+      forceLabel: true
+    });
+  }
+
   private isPositionOccupied(
     graph: Graph,
     x: number,
@@ -229,7 +280,7 @@ export class GraphService {
     graph: Graph,
     sourceNodeId: string,
     category: string,
-    relations: ArtistRelation[],
+    relations: ArtistRelation[] | null,
     index: number,
     total: number
   ): void {

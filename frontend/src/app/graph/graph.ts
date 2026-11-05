@@ -361,8 +361,15 @@ export class GraphComponent implements AfterViewInit {
                             {
                                 name: 'Band Members',
                                 relations: bandMemberRelations
+                            },
+                            {
+                                name: 'Albums',
+                                relations: null
                             }
-                        ].filter(category => category.relations.length > 0);
+                        ].filter(category => 
+                            category.name === 'Albums' ||
+                            (category.relations?.length ?? 0) > 0 
+                        );
 
                         categories.forEach((category, index) => {
                             this.graphService.addCategoryNode(
@@ -389,7 +396,67 @@ export class GraphComponent implements AfterViewInit {
             });
     }
 
+    private loadAlbumNodes(
+        categoryNodeId: string,
+        artistId: string
+    ): void {
+
+        this.musicbrainzApiService
+            .getAlbums(artistId)
+            .subscribe({
+                next: albums => {
+
+                    const categoryAttributes =
+                        this.graph!.getNodeAttributes(categoryNodeId);
+
+                    const artistAttributes =
+                        this.graph!.getNodeAttributes(artistId);
+
+                    const directionAngle = Math.atan2(
+                        categoryAttributes['y'] - artistAttributes['y'],
+                        categoryAttributes['x'] - artistAttributes['x']
+                    );
+
+                    albums.forEach((album, index) => {
+
+                        this.graphService.addAlbumNode(
+                            this.graph!,
+                            categoryNodeId,
+                            album,
+                            index,
+                            albums.length,
+                            directionAngle
+                        );
+
+                        this.graph!.mergeEdge(
+                            categoryNodeId,
+                            album.albumId
+                        );
+                    });
+                },
+                error: error => {
+                    console.error('Failed to load albums:', error);
+                }
+            });
+    }
+
     private handleCategoryClick(nodeId: string): void {
+
+        const categoryName = this.graph!.getNodeAttribute(
+            nodeId,
+            'label'
+        );
+
+        if (categoryName === 'Albums') {
+            const artistId = this.graph!.getNodeAttribute(
+                nodeId,
+                'parentNodeId'
+            );
+
+            this.loadAlbumNodes(nodeId, artistId);
+            return;
+        }
+
         const relations: ArtistRelation[] =
             this.graph!.getNodeAttribute(nodeId, 'relations');
 

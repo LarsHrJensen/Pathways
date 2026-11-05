@@ -6,6 +6,7 @@ import { ArtistRelation } from '../models/artist-relation';
 import { WikidataArtistHoverInfo } from '../models/wikidata-artist-hover-info'
 import { WikidataGroupHoverInfo } from '../models/wikidata-group-hover-info';
 import { SearchResult } from '../models/search';
+import { Album } from '../models/album';
 
 @Injectable({
     providedIn: 'root'
@@ -14,6 +15,12 @@ export class MusicBrainzApiService {
     private readonly apiUrl = 'http://localhost:5081/api/music';
 
     constructor(private http: HttpClient) {}
+
+    getAlbums(mbid: string): Observable<Album[]>{
+        return this.http.get<Album[]>(
+            `${this.apiUrl}/albums/${mbid}`
+        );
+    }
 
     getArtist(artist: string): Observable<MusicBrainzArtist> {
         return this.http.get<MusicBrainzArtist>(
