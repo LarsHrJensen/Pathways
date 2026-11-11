@@ -157,7 +157,9 @@ export class GraphService {
     }
 
     graph.addNode(album.albumId, {
-      label: album.albumName,
+      label: album.releaseYear !== null
+        ? `${album.albumName} (${album.releaseYear})`
+        : album.albumName,
       x: x,
       y: y,
       size: 4,
@@ -165,6 +167,7 @@ export class GraphService {
       releaseYear: album.releaseYear,
       parentNodeId: sourceNodeId,
       expanded: false,
+      relationLoaded: false,
       forceLabel: true
     });
   }

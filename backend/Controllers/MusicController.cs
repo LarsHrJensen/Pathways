@@ -59,13 +59,13 @@ public class MusicController : ControllerBase
         return Ok();
     }
 
- [HttpGet("test-releases/{mbid}")]
-public async Task<IActionResult> TestReleases(string mbid)
-{
-    await _musicBrainzService.GetReleaseGroupReleasesAsync(mbid);
+    [HttpGet("test-releases/{mbid}")]
+    public async Task<IActionResult> TestReleases(string mbid)
+    {
+        await _musicBrainzService.GetReleaseGroupReleasesAsync(mbid);
 
-    return Ok();
-}
+        return Ok();
+    }
 
     [HttpGet("projects/{mbid}")]
     public async Task<IActionResult> GetProjects(string mbid)
@@ -82,6 +82,15 @@ public async Task<IActionResult> TestReleases(string mbid)
         var result = await _musicBrainzService.GetAlbumsAsync(mbid);
 
         return Ok(result);
+    }
+
+    [HttpGet("albums/{mbid:guid}/producers")]
+    public async Task<ActionResult<List<ProducerDto>>> GetAlbumProducers(
+    Guid mbid)
+    {
+        var producers = await _musicBrainzService.GetAlbumProducersAsync(mbid);
+
+        return Ok(producers);
     }
 
     [HttpGet("release-relations/{mbid}")]
@@ -111,7 +120,7 @@ public async Task<IActionResult> TestReleases(string mbid)
         if (wikidataId is null)
         {
             return NotFound();
-        }    
+        }
 
         var result =
             await _wikidataService.GetWikidataArtistHoverInfoAsync(wikidataId);

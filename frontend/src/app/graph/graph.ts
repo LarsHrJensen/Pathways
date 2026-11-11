@@ -94,20 +94,18 @@ export class GraphComponent implements AfterViewInit {
         });
 
         this.sigma.on('clickNode', ({ node }) => {
+
             const nodeType =
                 this.graph!.getNodeAttribute(node, 'nodeType');
 
-            console.log('Clicked node: ', node);
-            console.log('Node type: ', nodeType);
-
             if (nodeType === 'artist') {
-                console.log('Calling handleArtistClick');
                 this.handleArtistClick(node);
-            }
 
-            if (nodeType === 'category') {
-                console.log('Calling handleCategoryClick');
+            } else if (nodeType === 'category') {
                 this.handleCategoryClick(node);
+
+            } else if (nodeType === 'album') {
+                this.handleAlbumClick(node);
             }
         });
 
@@ -276,29 +274,6 @@ export class GraphComponent implements AfterViewInit {
         });
     }
 
-    //Listens for click on searched nodes (ignores clicks on nodes from uploaded playlist)
-    private setupSearchNodeClick(): void {
-
-        console.log('Setting up search node click handler');
-
-        this.sigma!.on('clickNode', ({ node }) => {
-
-            const nodeType =
-                this.graph!.getNodeAttribute(node, 'nodeType');
-
-            const source = 
-                this.graph!.getNodeAttribute(node, 'source');
-
-            if (source === 'artist') {
-                this.handleArtistClick(node);
-            }
-
-            if (nodeType === 'category') {
-                this.handleCategoryClick(node);
-            }
-        });
-    }
-
     private loadArtistCategories(nodeId: string): void {
 
         const artistType = this.graph!.getNodeAttribute(
@@ -440,6 +415,53 @@ export class GraphComponent implements AfterViewInit {
             });
     }
 
+    private loadProducerNodes(
+        categoryNodeId: string,
+        albumId: string
+    ): void {
+
+        this.musicbrainzApiService
+            .getAlbumProducers(albumId)
+            .subscribe({
+                next: producers => {
+
+                    const parentAttributes =
+                        this.graph!.getNodeAttributes(albumId);
+
+                    const categoryAttributes =
+                        this.graph!.getNodeAttributes(categoryNodeId);
+
+                    const directionAngle = Math.atan2(
+                        categoryAttributes['y'] - parentAttributes['y'],
+                        categoryAttributes['x'] - parentAttributes['x']
+                    );
+
+                    producers.forEach((producer, index) => {
+
+                        this.graphService.addArtistNode(
+                            this.graph!,
+                            categoryNodeId,
+                            producer.artistId,
+                            producer.artistName,
+                            'Person',
+                            index,
+                            producers.length,
+                            directionAngle
+                        );
+
+                        this.graphService.addArtistEdge(
+                            this.graph!,
+                            categoryNodeId,
+                            producer.artistId
+                        );
+                    });
+                },
+                error: err => {
+                    console.error('Error loading producers:', err);
+                }
+            });
+    }
+
     private handleCategoryClick(nodeId: string): void {
 
         const categoryName = this.graph!.getNodeAttribute(
@@ -456,6 +478,16 @@ export class GraphComponent implements AfterViewInit {
             this.loadAlbumNodes(nodeId, artistId);
             return;
         }
+
+        if (categoryName === 'Producers') {
+            const albumId = this.graph!.getNodeAttribute(
+                nodeId,
+                'parentNodeId'
+            );
+
+            this.loadProducerNodes(nodeId, albumId);
+            return;
+}
 
         const relations: ArtistRelation[] =
             this.graph!.getNodeAttribute(nodeId, 'relations');
@@ -789,6 +821,47 @@ export class GraphComponent implements AfterViewInit {
             this.loadArtistCategories(nodeId);
             this.graph!.setNodeAttribute(nodeId, 'relationLoaded', true);
             this.graph!.setNodeAttribute(nodeId, 'color', 'green');
+        }
+
+        this.graph!.setNodeAttribute(nodeId, 'expanded', !expanded);
+    }
+
+    private handleAlbumClick(nodeId: string): void {
+
+        console.log('handleAlbumclick called:', nodeId);
+
+        const expanded = this.graph!.getNodeAttribute(
+            nodeId,
+            'expanded'
+        );
+
+        const relationLoaded = this.graph!.getNodeAttribute(
+            nodeId,
+            'relationLoaded'
+        );
+
+        if (expanded) {
+            this.collapseNode(nodeId) 
+            this.graph!.setNodeAttribute(nodeId, 'color', 'grey');
+            
+
+        } else if (relationLoaded) {
+            this.expandNode(nodeId);
+            this.graph!.setNodeAttribute(nodeId, 'color', 'green')
+
+        } else {
+            this.graphService.addCategoryNode(
+                this.graph!,
+                nodeId,
+                'Producers',
+                null,
+                0,
+                1
+            );
+
+            this.graph!.setNodeAttribute(nodeId, 'relationLoaded', true);
+            this.graph!.setNodeAttribute(nodeId, 'color', 'green');
+            
         }
 
         this.graph!.setNodeAttribute(nodeId, 'expanded', !expanded);

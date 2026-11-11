@@ -28,6 +28,11 @@ public class MusicBrainzService
         return await _repository.GetAlbumsAsync(artistId);
     }
 
+    public async Task<List<ProducerDto>> GetAlbumProducersAsync(Guid albumMbid)
+    {
+        return await _repository.GetAlbumProducersAsync(albumMbid);
+    }
+
     public async Task<Artist> SearchArtistAsync(string artist)
     {
 
@@ -210,33 +215,33 @@ public class MusicBrainzService
         }
     }
 
-public async Task GetReleaseGroupReleasesAsync(string releaseMbid)
-{
-    var url =
-    $"https://musicbrainz.org/ws/2/release/{releaseMbid}?inc=artist-rels+label-rels+recording-rels+work-rels&fmt=json";
+    public async Task GetReleaseGroupReleasesAsync(string releaseMbid)
+    {
+        var url =
+        $"https://musicbrainz.org/ws/2/release/{releaseMbid}?inc=artist-rels+label-rels+recording-rels+work-rels&fmt=json";
 
         var json = await _httpClient.GetStringAsync(url);
 
-    using var document = JsonDocument.Parse(json);
+        using var document = JsonDocument.Parse(json);
 
-    var relations = document.RootElement.GetProperty("relations");
+        var relations = document.RootElement.GetProperty("relations");
 
-    Console.WriteLine("=== RELEASE -> ARTIST RELATIONS ===");
+        Console.WriteLine("=== RELEASE -> ARTIST RELATIONS ===");
 
-    var relationTypes = relations
-        .EnumerateArray()
-        .Select(relation => relation.GetProperty("type").GetString())
-        .Where(type => type != null)
-        .GroupBy(type => type)
-        .OrderBy(group => group.Key);
+        var relationTypes = relations
+            .EnumerateArray()
+            .Select(relation => relation.GetProperty("type").GetString())
+            .Where(type => type != null)
+            .GroupBy(type => type)
+            .OrderBy(group => group.Key);
 
-    Console.WriteLine("=== RELEASE RELATION TYPES ===");
+        Console.WriteLine("=== RELEASE RELATION TYPES ===");
 
-    foreach (var group in relationTypes)
-    {
-        Console.WriteLine($"{group.Key}: {group.Count()}");
+        foreach (var group in relationTypes)
+        {
+            Console.WriteLine($"{group.Key}: {group.Count()}");
+        }
     }
-}
 
     public async Task<List<Relation>> GetReleaseRelationsAsync(string mbid)
     {
